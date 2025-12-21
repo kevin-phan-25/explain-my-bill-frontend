@@ -1,4 +1,4 @@
-const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+const WORKER_URL = process.env.REACT_APP_WORKER_URL;
 
 export async function createCheckoutSession(plan) {
   const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
