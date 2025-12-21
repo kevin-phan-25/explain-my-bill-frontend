@@ -1,20 +1,18 @@
-// frontend/src/api.js
-
 const WORKER_URL = process.env.REACT_APP_WORKER_URL;
 
 export async function uploadBill(formData) {
-  const res = await fetch(WORKER_URL, {
-    method: "POST",
-    body: formData,
-  });
-  return res.json();
-}
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      body: formData,
+    });
 
-export async function createCheckoutSession(plan) {
-  const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan }),
-  });
-  return res.json();
+    // Check response is OK and valid JSON
+    const text = await res.text();
+    if (!text) return { error: "Empty response from server" };
+    return JSON.parse(text);
+  } catch (err) {
+    console.error(err);
+    return { error: "Failed to process bill" };
+  }
 }
