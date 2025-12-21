@@ -1,47 +1,46 @@
-import React, { useState } from "react";
-import { uploadBill } from "../api";
-import ExplanationCard from "./ExplanationCard";
+import { useState } from "react";
+import { explainBill } from "../api";
 
-export default function BillUploader() {
+export default function BillUploader({ setExplanation, setIsPaid, setLoading }) {
   const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [explanation, setExplanation] = useState(null);
-  const [error, setError] = useState("");
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-    setExplanation(null);
-    setError("");
-  };
 
   const handleUpload = async () => {
-    if (!file) return setError("Please select a file first.");
+    if (!file) return;
     setLoading(true);
-    setError("");
-
     const formData = new FormData();
     formData.append("bill", file);
 
-    const res = await uploadBill(formData);
-    if (res.error) {
-      setError(res.error);
-    } else {
-      setExplanation(res);
+    try {
+      const data = await explainBill(formData);
+      if (data.error) {
+        alert(data.error);
+      } else {
+        setExplanation(data.explanation);
+        setIsPaid(data.isPaid);
+      }
+    } catch (err) {
+      alert("Error processing bill: " + err.message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div className="card">
-      <h2>Upload Your Bill</h2>
-      <input type="file" accept=".jpg,.png,.pdf" onChange={handleFileChange} />
-      <button onClick={handleUpload} style={{ marginTop: "1rem" }}>
-        {loading ? <span className="loader"></span> : "Explain Bill"}
+    <div className="flex flex-col items-center gap-4 w-full max-w-md">
+      <input
+        type="file"
+        accept="image/*,application/pdf"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                   file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                   file:bg-primary file:text-white hover:file:bg-secondary"
+      />
+      <button
+        onClick={handleUpload}
+        className="bg-primary hover:bg-secondary text-white font-bold py-2 px-6 rounded-lg shadow-md transition"
+      >
+        Upload & Explain
       </button>
-
-      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
-      {explanation && <ExplanationCard data={explanation} />}
     </div>
   );
 }
