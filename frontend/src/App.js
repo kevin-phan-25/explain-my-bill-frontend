@@ -1,28 +1,28 @@
-import { useState, useEffect } from "react";
-import UploadBill from "./components/UploadBill";
-import Billing from "./components/Billing";
+import React, { useState } from "react";
+import Billing from "./Billing";
+import UploadBill from "./UploadBill";
 
 function App() {
-  const [sessionId, setSessionId] = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sess = params.get("session_id");
-    if (sess) {
-      setSessionId(sess);
-      window.history.replaceState({}, "", "/");
-    }
-  }, []);
+  const [billData, setBillData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   return (
-    <div style={{ maxWidth: "800px", margin: "auto", padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <div className="app-container" style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
       <h1>Explain My Bill</h1>
-      <p>Upload a medical or dental bill (PDF/image) or paste text — get a clear AI explanation.</p>
+      <p>Upload your medical or any bill and get an easy-to-understand explanation.</p>
 
-      {!sessionId && <Billing />}
-      <UploadBill sessionId={sessionId} />
+      {!billData && (
+        <UploadBill
+          setBillData={setBillData}
+          setLoading={setLoading}
+        />
+      )}
 
-      {sessionId && <p style={{ color: "green", fontWeight: "bold" }}>✅ Full explanation unlocked!</p>}
+      {loading && <p>Processing your bill... please wait.</p>}
+
+      {billData && !loading && (
+        <Billing data={billData} setBillData={setBillData} />
+      )}
     </div>
   );
 }
