@@ -1,3 +1,7 @@
+
+and paste this complete template into it:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -5,11 +9,19 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Explain My Bill – AI-powered medical and dental bill explainer" />
+
+    <!--
+      Manifest file for Progressive Web App support
+      (optional if you don’t have one yet)
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
     <title>Explain My Bill</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- React will render the app inside this div -->
     <div id="root"></div>
   </body>
 </html>
