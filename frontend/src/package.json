@@ -1,21 +1,27 @@
 {
   "name": "explain-my-bill-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Frontend for Explain My Bill",
+  "description": "Modern React frontend for ExplainMyBill Worker API",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint ./src --ext .js,.jsx"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-scripts": "^5.0.1",
+    "autoprefixer": "^10.4.15",
+    "postcss": "^8.4.23",
+    "tailwindcss": "^3.3.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^8.44.0",
+    "eslint-plugin-react": "^7.33.2"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
