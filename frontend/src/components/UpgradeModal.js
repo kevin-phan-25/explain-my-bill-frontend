@@ -1,3 +1,5 @@
+// src/components/UpgradeModal.js
+
 import React, { useState } from 'react';
 import { createCheckoutSession } from '../api/explainApi';
 import { motion } from 'framer-motion';
@@ -35,17 +37,6 @@ export default function UpgradeModal({ onClose, stripePromise }) {
           Get red flags, appeal letters, savings estimates, insurance insights, and more.
         </p>
 
-        {/* Free TL;DR Highlight */}
-        <motion.div
-          className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl mb-6 shadow-md text-center"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.1 } }}
-        >
-          <p className="text-lg font-semibold text-amber-900">
-            🔹 Your free TL;DR summary gives a quick explanation instantly. Upgrade to see the full details!
-          </p>
-        </motion.div>
-
         {/* Payment Buttons */}
         <motion.div
           className="space-y-6"
@@ -59,7 +50,6 @@ export default function UpgradeModal({ onClose, stripePromise }) {
           >
             One-Time Access • $17.99
           </button>
-
           <button
             onClick={() => handlePayment('monthly')}
             disabled={loading}
