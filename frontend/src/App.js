@@ -7,7 +7,6 @@ import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
 const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Test mode
-// const stripePromise = loadStripe('pk_live_51YourLiveKeyHere'); // Live mode
 
 function App() {
   const [result, setResult] = useState(null);
@@ -26,6 +25,11 @@ function App() {
     }
 
     setResult(data);
+  };
+
+  const resetToUpload = () => {
+    setResult(null);
+    setShowUpgrade(false);
   };
 
   const loadSampleBill = (type) => {
@@ -141,7 +145,19 @@ function App() {
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         ) : (
-          <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
+          <>
+            {/* New: Button to go back to upload */}
+            <div className="text-center mb-10">
+              <button
+                onClick={resetToUpload}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-10 rounded-2xl text-xl shadow-lg transition"
+              >
+                ← Analyze Another Bill
+              </button>
+            </div>
+
+            <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
+          </>
         )}
 
         {loading && <Loader />}
