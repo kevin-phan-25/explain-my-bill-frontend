@@ -1,8 +1,15 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class', // Enable class-based dark mode
-  content: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"],
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: "#2563eb", // blue-600
+        accent: "#1e40af",  // blue-800
+      },
+    },
   },
   plugins: [],
 };
