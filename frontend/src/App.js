@@ -32,38 +32,15 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // 6 Realistic Sample Bills
+  // 7 Realistic Sample Bills (including Vision Care)
   const sampleBills = [
-    {
-      name: "Routine Check-Up (Normal)",
-      image: "https://i.imgur.com/8yR0k2L.png",
-      type: 'routine'
-    },
-    {
-      name: "ER Visit – High Charge",
-      image: "https://i.imgur.com/3jK9pLm.png",
-      type: 'er_high'
-    },
-    {
-      name: "Denied Lab Tests",
-      image: "https://i.imgur.com/X7vN4qP.png",
-      type: 'denied_lab'
-    },
-    {
-      name: "Surprise Ambulance Bill",
-      image: "https://i.imgur.com/AmbulanceBillExample.jpg", // placeholder realistic
-      type: 'ambulance'
-    },
-    {
-      name: "Out-of-Network Specialist",
-      image: "https://i.imgur.com/OutOfNetworkExample.jpg",
-      type: 'out_network'
-    },
-    {
-      name: "Dental Cleaning + X-Ray",
-      image: "https://i.imgur.com/DentalBillExample.jpg",
-      type: 'dental'
-    }
+    { name: "Routine Doctor Visit", image: "https://i.imgur.com/8yR0k2L.png", type: 'routine' },
+    { name: "Emergency Room (High Charge)", image: "https://i.imgur.com/3jK9pLm.png", type: 'er' },
+    { name: "Denied Lab Tests", image: "https://i.imgur.com/X7vN4qP.png", type: 'denied' },
+    { name: "Surprise Ambulance", image: "https://i.imgur.com/AmbulanceBillExample.jpg", type: 'ambulance' },
+    { name: "Out-of-Network Specialist", image: "https://i.imgur.com/OutOfNetworkExample.jpg", type: 'out_network' },
+    { name: "Dental Cleaning", image: "https://i.imgur.com/DentalBillExample.jpg", type: 'dental' },
+    { name: "Eye Exam & Glasses", image: "https://i.imgur.com/VisionCareBillExample.jpg", type: 'vision' }
   ];
 
   const loadSampleFromImage = (type) => {
@@ -76,66 +53,71 @@ function App() {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This is a routine annual check-up with your primary doctor.\n\n" +
-              "Services: Office visit (CPT 99214 - established patient, moderate complexity)\n" +
-              "Charged: $195\n" +
-              "Insurance allowed: $142 (in-network rate)\n" +
-              "Insurance paid: $113.60 (80%)\n\n" +
-              "You owe: $28.40 — this is normal and expected.\n\n" +
-              "No red flags detected."
+            explanation: "This is a standard check-up.\n\n" +
+              "CPT 99214: Office visit, moderate complexity — $195 charged.\n" +
+              "Insurance paid 80% ($156).\n\n" +
+              "You owe $39 — normal and expected.\n\n" +
+              "No issues found."
           }],
-          fullExplanation: "Normal annual check-up. You owe $28.40.",
+          fullExplanation: "Normal check-up. You owe $39.",
           paidFeatures: {
             redFlags: [],
+            cptExplanations: [
+              "99214: Detailed office visit for established patient (common for annual check-up)"
+            ],
             estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "Blue Cross Blue Shield", coverageNote: "Covers preventive visits at 100% if annual wellness" },
+            insuranceLookup: { insurer: "Blue Cross", coverageNote: "Covers preventive care" },
             appealLetter: "No appeal needed.",
-            customAdvice: "This is a standard charge. Pay the balance or set up a payment plan.",
+            customAdvice: "Pay the balance or set up payment plan.",
           }
         };
-      } else if (type === 'er_high') {
+      } else if (type === 'er') {
         sampleData = {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This is an emergency room visit bill.\n\n" +
-              "Level 5 ER visit (highest complexity) charged at $4,200\n" +
-              "Facility fee: $2,800\n" +
-              "Physician fee: $1,400\n\n" +
-              "Insurance paid: $1,800\n" +
-              "You owe: $2,400\n\n" +
-              "RED FLAG: ER facility fees are often inflated 5–10x fair price.\n" +
-              "National average for Level 5 ER visit: $1,200–$2,000\n\n" +
-              "You may be overcharged by $1,000+"
+            explanation: "Emergency room visit.\n\n" +
+              "CPT 99285: Highest level ER care — $4,200 charged.\n" +
+              "Insurance paid $1,800.\n\n" +
+              "You owe $2,400 — very high.\n\n" +
+              "RED FLAG: ER facility fees often 5–10x inflated.\n" +
+              "National average: $1,500–$2,500."
           }],
           fullExplanation: "High ER bill — likely overcharged.",
           paidFeatures: {
-            redFlags: ["Facility fee appears inflated", "Total charge 2x national average"],
-            estimatedSavings: { potentialSavings: "$1,000–$2,000" },
+            redFlags: ["Facility fee inflated", "Charge above average"],
+            cptExplanations: [
+              "99285: Emergency department visit, high severity (most expensive ER code)"
+            ],
+            estimatedSavings: { potentialSavings: "$1,000–$1,800" },
             insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Often negotiates ER bills" },
-            appealLetter: "Dear UnitedHealthcare,\n\nI am appealing the $4,200 ER facility charge from [date]...\n\nThis is significantly above fair market rates.",
-            customAdvice: "Request itemized bill. Compare to fairhealthconsumer.org. Ask hospital for charity care or discount.",
+            appealLetter: "Dear Insurance,\n\nThe $4,200 ER charge is far above average...",
+            customAdvice: "Request itemized bill. Use fairhealthconsumer.org to compare.",
           }
         };
-      } else if (type === 'denied_lab') {
+      } else if (type === 'denied') {
         sampleData = {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This bill is for blood work and lab tests.\n\n" +
-              "Total charged: $680\n" +
-              "Insurance denied all charges citing 'not medically necessary'\n\n" +
-              "You owe full amount: $680\n\n" +
-              "RED FLAG: Lab denials are common but often overturned on appeal.\n" +
-              "Success rate: ~70% when appealed with doctor letter."
+            explanation: "Lab tests denied.\n\n" +
+              "CPT 80053: Comprehensive metabolic panel — $180\n" +
+              "CPT 85025: Complete blood count — $85\n\n" +
+              "Insurance denied both as 'not medically necessary'.\n\n" +
+              "You owe $265.\n\n" +
+              "RED FLAG: Denials often overturned with doctor letter."
           }],
-          fullExplanation: "Lab tests denied — appeal recommended.",
+          fullExplanation: "Labs denied — appeal possible.",
           paidFeatures: {
-            redFlags: ["Full denial of routine labs", "No medical necessity letter attached"],
-            estimatedSavings: { potentialSavings: "$680" },
-            insuranceLookup: { insurer: "Aetna", coverageNote: "Requires pre-authorization for some labs" },
-            appealLetter: "Dear Aetna,\n\nI appeal the denial of lab tests ordered by Dr. Smith on [date]...\n\nThese were medically necessary for ongoing condition monitoring.",
-            customAdvice: "Get a letter of medical necessity from your doctor. Submit appeal within 180 days.",
+            redFlags: ["Full denial of routine labs"],
+            cptExplanations: [
+              "80053: Blood test for organ function (liver, kidney, etc.)",
+              "85025: Complete blood count (checks anemia, infection)"
+            ],
+            estimatedSavings: { potentialSavings: "$265" },
+            insuranceLookup: { insurer: "Aetna", coverageNote: "Appeals succeed ~70%" },
+            appealLetter: "Dear Aetna,\n\nThese labs were ordered by my doctor for monitoring...",
+            customAdvice: "Get doctor's letter of necessity. Appeal within 180 days.",
           }
         };
       } else if (type === 'ambulance') {
@@ -143,20 +125,24 @@ function App() {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This is an ambulance transport bill.\n\n" +
+            explanation: "Ambulance transport.\n\n" +
               "Base rate + mileage: $1,800\n" +
-              "Insurance paid: $400\n" +
-              "You owe: $1,400\n\n" +
-              "RED FLAG: Ambulance bills are frequently surprise charges and often reduced on appeal.\n" +
-              "Many states have balance billing protections."
+              "Insurance paid $400.\n\n" +
+              "You owe $1,400.\n\n" +
+              "RED FLAG: Ambulance bills often surprise charges.\n" +
+              "Many states protect against balance billing."
           }],
-          fullExplanation: "Surprise ambulance bill — common issue.",
+          fullExplanation: "Surprise ambulance bill.",
           paidFeatures: {
-            redFlags: ["Possible surprise billing", "High mileage charge"],
+            redFlags: ["Possible surprise billing"],
+            cptExplanations: [
+              "A0425: Ground ambulance mileage",
+              "A0429: Basic life support ambulance"
+            ],
             estimatedSavings: { potentialSavings: "$800–$1,200" },
-            insuranceLookup: { insurer: "Cigna", coverageNote: "Check for ground ambulance coverage" },
-            appealLetter: "Dear Cigna,\n\nI am appealing the $1,800 ambulance charge...\n\nThis was emergency transport.",
-            customAdvice: "Check if ambulance was in-network. Ask for 'no surprise billing' protection.",
+            insuranceLookup: { insurer: "Cigna", coverageNote: "Check state laws" },
+            appealLetter: "Dear Cigna,\n\nThis was emergency transport...",
+            customAdvice: "Check for 'no surprise act' protection.",
           }
         };
       } else if (type === 'out_network') {
@@ -164,21 +150,23 @@ function App() {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This bill is from a specialist visit.\n\n" +
-              "Charge: $650 for consultation\n" +
-              "Specialist was out-of-network\n" +
-              "Insurance paid: $120\n" +
-              "You owe: $530\n\n" +
-              "RED FLAG: Out-of-network charges can be 3–5x higher.\n" +
-              "You may qualify for in-network rate adjustment."
+            explanation: "Specialist visit.\n\n" +
+              "CPT 99204: New patient, high complexity — $650\n" +
+              "Provider out-of-network.\n\n" +
+              "Insurance paid $120.\n" +
+              "You owe $530.\n\n" +
+              "RED FLAG: Out-of-network can be 3–5x higher."
           }],
           fullExplanation: "Out-of-network specialist — high balance.",
           paidFeatures: {
-            redFlags: ["Out-of-network provider", "Balance billing possible"],
+            redFlags: ["Out-of-network charge"],
+            cptExplanations: [
+              "99204: Detailed new patient visit (used for specialists)"
+            ],
             estimatedSavings: { potentialSavings: "$300–$400" },
-            insuranceLookup: { insurer: "Anthem", coverageNote: "May adjust to in-network rate on appeal" },
-            appealLetter: "Dear Anthem,\n\nThe specialist was out-of-network without my knowledge...\n\nPlease adjust to in-network rate.",
-            customAdvice: "Ask if provider accepts your insurance. Request 'gap exception'.",
+            insuranceLookup: { insurer: "Anthem", coverageNote: "May adjust rate" },
+            appealLetter: "Dear Anthem,\n\nProvider was out-of-network without notice...",
+            customAdvice: "Request 'gap exception' or in-network rate.",
           }
         };
       } else if (type === 'dental') {
@@ -186,29 +174,60 @@ function App() {
           isPaid: true,
           pages: [{
             page: 1,
-            explanation: "This is a dental cleaning and exam bill.\n\n" +
-              "Cleaning (D1110): $120\n" +
-              "X-rays (D0210): $85\n" +
-              "Exam (D0150): $65\n" +
-              "Total: $270\n\n" +
-              "Dental insurance paid: $180\n" +
-              "You owe: $90\n\n" +
-              "No red flags — standard dental charges."
+            explanation: "Dental cleaning and exam.\n\n" +
+              "D1110: Adult cleaning — $120\n" +
+              "D0210: Full mouth X-rays — $85\n" +
+              "D0150: Comprehensive exam — $65\n\n" +
+              "Total: $270\n" +
+              "Insurance paid $180.\n" +
+              "You owe $90 — standard."
           }],
-          fullExplanation: "Normal dental cleaning — you owe $90.",
+          fullExplanation: "Normal dental visit. You owe $90.",
           paidFeatures: {
             redFlags: [],
+            cptExplanations: [
+              "D1110: Prophylaxis (cleaning) for adults",
+              "D0210: Complete X-ray series",
+              "D0150: Full exam for new or returning patient"
+            ],
             estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "Delta Dental", coverageNote: "Covers cleanings at 100% twice per year" },
+            insuranceLookup: { insurer: "Delta Dental", coverageNote: "Covers cleanings 100% twice/year" },
             appealLetter: "No appeal needed.",
-            customAdvice: "This is standard. Check if you have unused annual maximum.",
+            customAdvice: "Check remaining annual maximum.",
+          }
+        };
+      } else if (type === 'vision') {
+        sampleData = {
+          isPaid: true,
+          pages: [{
+            page: 1,
+            explanation: "Eye exam and glasses.\n\n" +
+              "CPT 92015: Refraction (vision test) — $85\n" +
+              "S0620: Routine eye exam — $120\n" +
+              "Frames + lenses: $280\n\n" +
+              "Vision insurance paid $150.\n" +
+              "You owe $335.\n\n" +
+              "Note: Medical insurance usually doesn't cover routine vision.\n" +
+              "No red flags — typical vision plan coverage."
+          }],
+          fullExplanation: "Routine eye exam + glasses. You owe $335.",
+          paidFeatures: {
+            redFlags: [],
+            cptExplanations: [
+              "92015: Determination of refractive state (how strong your prescription is)",
+              "S0620: Routine ophthalmological exam"
+            ],
+            estimatedSavings: { potentialSavings: "$0" },
+            insuranceLookup: { insurer: "VSP Vision", coverageNote: "Covers exam + $150 toward glasses" },
+            appealLetter: "No appeal needed.",
+            customAdvice: "Use remaining vision benefits. Shop for cheaper frames online.",
           }
         };
       }
 
       handleResult(sampleData);
       setLoading(false);
-    }, 2000);
+    }, 1500);
   };
 
   return (
@@ -234,7 +253,7 @@ function App() {
         </div>
       </div>
 
-      {/* Sample Bill Images – BIG & PROMINENT */}
+      {/* Sample Bill Images */}
       <div className="container mx-auto px-6 mt-20">
         <h2 className="text-4xl font-bold text-center text-blue-900 mb-12">
           Try a Sample Bill Instantly
@@ -262,7 +281,7 @@ function App() {
         </div>
       </div>
 
-      {/* FairHealth Info */}
+      {/* FairHealth Link */}
       <div className="container mx-auto px-6 mt-20 max-w-4xl">
         <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-10 shadow-xl">
           <h3 className="text-3xl font-bold text-blue-900 mb-4">What is FairHealth?</h3>
