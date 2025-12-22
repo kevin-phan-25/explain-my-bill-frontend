@@ -6,7 +6,7 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Test mode
+const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Replace with live key when ready
 
 function App() {
   const [result, setResult] = useState(null);
@@ -54,10 +54,50 @@ function App() {
   const loadSampleFromImage = (type) => {
     setLoading(true);
     setTimeout(() => {
-      // Same sample data as before
-      const sampleData = type === 'office' ? { /* office data */ } : type === 'er' ? { /* er data */ } : { /* denied data */ };
-      // Use the same sample data from previous message
-      // (omitted for brevity — copy from previous response)
+      // Replace with your actual sample data from previous versions
+      let sampleData = {};
+
+      if (type === 'office') {
+        sampleData = {
+          isPaid: true,
+          pages: [{ page: 1, explanation: "This is a routine office visit bill.\n\nThe charge is $180 for a standard visit (CPT code 99213).\n\nInsurance paid $144 (80%).\n\nYou owe $36 — this is normal and fair.\n\nNo red flags." }],
+          fullExplanation: "You owe $36 for a normal check-up.",
+          paidFeatures: {
+            redFlags: [],
+            estimatedSavings: { potentialSavings: "$0" },
+            insuranceLookup: { insurer: "Blue Cross", coverageNote: "Covers 80% of office visits" },
+            appealLetter: "No appeal needed — bill is correct.",
+            customAdvice: "Pay the $36 or set up a payment plan.",
+          }
+        };
+      } else if (type === 'er') {
+        sampleData = {
+          isPaid: true,
+          pages: [{ page: 1, explanation: "This is an emergency room bill.\n\nYou were charged $2,800 for a Level 4 ER visit.\n\nInsurance paid $1,200.\n\nYou owe $1,600 — this is VERY HIGH.\n\nRED FLAG: ER charges are often inflated.\n\nAverage cost is $1,200–$1,800.\n\nYou may be overcharged." }],
+          fullExplanation: "You owe $1,600 — likely overcharged.",
+          paidFeatures: {
+            redFlags: ["Possible overcharge of $800–$1,000"],
+            estimatedSavings: { potentialSavings: "$800+" },
+            insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Check if facility was in-network" },
+            appealLetter: "Dear Insurance,\n\nI am appealing the $2,800 ER charge...\n\nThis is above fair pricing.",
+            customAdvice: "Request itemized bill. Compare to fairhealthconsumer.org. File appeal.",
+          }
+        };
+      } else if (type === 'denied') {
+        sampleData = {
+          isPaid: true,
+          pages: [{ page: 1, explanation: "This bill shows a denied claim.\n\nYou were charged $450 for lab tests.\n\nInsurance denied it saying 'not medically necessary'.\n\nYou owe the full $450.\n\nRED FLAG: Denials can often be appealed successfully.\n\n70% of appeals win." }],
+          fullExplanation: "Insurance denied $450 in lab tests.",
+          paidFeatures: {
+            redFlags: ["Claim denied — appeal recommended"],
+            estimatedSavings: { potentialSavings: "$450" },
+            insuranceLookup: { insurer: "Aetna", coverageNote: "Appeals have high success rate" },
+            appealLetter: "Dear Aetna,\n\nI appeal the denial of lab tests on [date]...\n\nThese were ordered by my doctor and medically necessary.",
+            customAdvice: "Get a letter from your doctor explaining necessity. Submit appeal within 180 days.",
+          }
+        };
+      }
+
       handleResult(sampleData);
       setLoading(false);
     }, 2000);
@@ -114,7 +154,7 @@ function App() {
         </div>
       </div>
 
-      {/* FairHealth Info */}
+      {/* FairHealth Info – Prominent Link */}
       <div className="container mx-auto px-6 mt-20 max-w-4xl">
         <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-10 shadow-xl">
           <h3 className="text-3xl font-bold text-blue-900 mb-4">What is FairHealth?</h3>
