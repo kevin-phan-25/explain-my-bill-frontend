@@ -32,41 +32,41 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // 7 Realistic Sample Bills with WORKING images
+  // 7 Realistic Sample Bills with RELIABLE images
   const sampleBills = [
     {
       name: "Routine Check-Up (Normal)",
-      image: "https://www.carepatron.com/files/superbill.jpg", // Superbill template
+      image: "https://www.devry.edu/blog/examples/_jcr_content/root/container/structured_container_161844580/content-col-1/container/image_copy_copy_copy.coreimg.jpeg/1753935319005/pic-medical-coding-example-1.jpeg",
       type: 'routine'
     },
     {
       name: "Emergency Room (High Charge)",
-      image: "https://www.acep.org/contentassets/b75f0408e91a4a5ca7016f01aeb4edeb/page-17.png", // ER example
+      image: "https://preview.redd.it/price-of-a-5-minute-ambulance-ride-to-the-hospital-v0-oxv3y6pn755e1.jpeg?width=640&crop=smart&auto=webp&s=8b20faddcc24a66b12e2972dae849e4ac4400bb4",
       type: 'er'
     },
     {
       name: "Denied Lab Tests",
-      image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg", // Denied EOB
+      image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg",
       type: 'denied'
     },
     {
       name: "Surprise Ambulance Bill",
-      image: "https://i.redd.it/oxv3y6pn755e1.jpeg", // $4k ambulance
+      image: "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=10163243274528112",
       type: 'ambulance'
     },
     {
       name: "Out-of-Network Specialist",
-      image: "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=29330933076497474", // Out-of-network example
+      image: "https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=29330933076497474",
       type: 'out_network'
     },
     {
       name: "Dental Cleaning + X-Ray",
-      image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png", // Dental invoice
+      image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png",
       type: 'dental'
     },
     {
       name: "Eye Exam & Glasses (Vision)",
-      image: "https://www.warbyparker.com/learn/wp-content/uploads/2022/02/eye-prescription-astigmatism-m.jpg", // Eye prescription bill example
+      image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg",
       type: 'vision'
     }
   ];
@@ -76,7 +76,6 @@ function App() {
     setTimeout(() => {
       let sampleData = {};
 
-      // Concise, realistic sample explanations
       if (type === 'routine') {
         sampleData = {
           isPaid: true,
@@ -102,7 +101,7 @@ function App() {
             estimatedSavings: { potentialSavings: "$1,000+" },
             insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Often negotiates ER" },
             appealLetter: "Dear Insurance,\nThe $4,200 ER charge is excessive...",
-            customAdvice: "Request itemized bill. Compare to fairhealthconsumer.org.",
+            customAdvice: "Request itemized bill. Use fairhealthconsumer.org to compare.",
           }
         };
       } else if (type === 'denied') {
@@ -205,7 +204,7 @@ function App() {
         </div>
       </div>
 
-      {/* Sample Bill Images – Scaled Down */}
+      {/* Sample Bill Images – Balanced Size */}
       <div className="container mx-auto px-6 mt-16">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
           Try a Sample Bill Instantly
@@ -221,7 +220,7 @@ function App() {
                 <img 
                   src={bill.image} 
                   alt={`Sample ${bill.name} medical bill`}
-                  className="w-full rounded-2xl shadow-xl border-4 border-blue-200 hover:border-blue-600 transition max-h-96 object-contain bg-white"
+                  className="w-full rounded-2xl shadow-xl border-4 border-blue-200 hover:border-blue-600 transition max-h-80 object-contain bg-white"
                 />
                 <p className="mt-6 text-2xl font-bold text-blue-900">
                   {bill.name}
