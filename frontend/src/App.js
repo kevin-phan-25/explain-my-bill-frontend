@@ -17,13 +17,12 @@ function App() {
   const handleResult = (data) => {
     if (!data) return;
 
-    // Developer mode: auto-unlock full features on localhost or Render
-    const isDev = window.location.hostname === 'localhost' ||
-                  window.location.hostname.includes('onrender.com') ||
-                  window.location.hostname.includes('127.0.0.1');
+    // DEVELOPER MODE: You always get full access, no paywall
+    // This works on localhost, Render, any domain — perfect for testing
+    const isDeveloper = true; // Set to false when launching to real users
 
-    if (isDev) {
-      data.isPaid = true; // Force full access for you
+    if (isDeveloper) {
+      data.isPaid = true;
       setShowUpgrade(false);
     } else if (!data.isPaid) {
       setShowUpgrade(true);
@@ -67,7 +66,46 @@ function App() {
         customAdvice: "Keep records for future reference."
       }
     },
-    // ... (all other sampleResults remain exactly the same)
+    er: {
+      tldr: "Your Free TL;DR: ER visit, high charges.",
+      features: {
+        cptExplanations: ["99285 - ER high complexity", "71020 - Chest X-ray"],
+        redFlags: ["ER charges unusually high"],
+        estimatedSavings: { potentialSavings: "$500–$1200", reason: "Common overcharges in ER" },
+        appealLetter: "Dear Provider,\nPlease review ER charges.",
+        customAdvice: "Check insurance coverage."
+      }
+    },
+    denied: {
+      tldr: "Your Free TL;DR: Lab tests denied by insurance.",
+      features: {
+        cptExplanations: ["80053 - Metabolic panel", "85025 - CBC"],
+        redFlags: ["Insurance denied these labs"],
+        estimatedSavings: { potentialSavings: "$200–$400", reason: "Denied labs can be appealed" },
+        appealLetter: "Dear Insurance,\nPlease reconsider denied labs.",
+        customAdvice: "Submit appeal with provider notes."
+      }
+    },
+    ambulance: {
+      tldr: "Your Free TL;DR: Surprise ambulance charge.",
+      features: {
+        cptExplanations: ["A0427 - Ambulance, advanced life support"],
+        redFlags: ["Out-of-network rate billed"],
+        estimatedSavings: { potentialSavings: "$300–$700", reason: "Ambulance overcharges common" },
+        appealLetter: "Dear Provider,\nPlease clarify ambulance charges.",
+        customAdvice: "Negotiate or verify coverage."
+      }
+    },
+    out_network: {
+      tldr: "Your Free TL;DR: Out-of-network specialist visit.",
+      features: {
+        cptExplanations: ["99214 - Specialist visit", "93000 - ECG"],
+        redFlags: ["Out-of-network billing high"],
+        estimatedSavings: { potentialSavings: "$400–$900", reason: "Negotiate out-of-network charges" },
+        appealLetter: "Dear Insurance,\nRequest adjustment.",
+        customAdvice: "Ask provider for discounts."
+      }
+    },
     dental: {
       tldr: "Your Free TL;DR: Dental cleaning & X-Ray.",
       features: {
@@ -78,7 +116,16 @@ function App() {
         customAdvice: "Confirm coverage."
       }
     },
-    // ... keep the rest unchanged
+    vision: {
+      tldr: "Your Free TL;DR: Eye exam & glasses.",
+      features: {
+        cptExplanations: ["92014 - Eye exam", "92340 - Lenses"],
+        redFlags: [],
+        estimatedSavings: { potentialSavings: "$50–$200", reason: "Vision costs vary widely" },
+        appealLetter: "Dear Provider,\nPlease review vision charges.",
+        customAdvice: "Check coverage."
+      }
+    }
   };
 
   const loadSampleFromImage = (type, e) => {
@@ -134,7 +181,7 @@ function App() {
         {loading && <Loader />}
         {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />}
       </main>
-      {/* Sample Bills Section (unchanged) */}
+      {/* Sample Bills Section */}
       <div className="container mx-auto px-6 mt-8">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
           Or Try a Sample Bill Instantly
@@ -161,7 +208,7 @@ function App() {
           ))}
         </div>
       </div>
-      {/* FairHealth Link (unchanged) */}
+      {/* FairHealth Link */}
       <div className="container mx-auto px-6 mt-16 max-w-4xl">
         <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl">
           <h3 className="text-2xl font-bold text-blue-900 mb-4">What is FairHealth?</h3>
