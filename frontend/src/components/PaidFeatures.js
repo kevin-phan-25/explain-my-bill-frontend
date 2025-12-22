@@ -2,50 +2,54 @@ import React from 'react';
 
 export default function PaidFeatures({ features }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-2xl font-bold">Premium Insights Unlocked</h3>
+    <div className="mt-12 space-y-10">
+      <h3 className="text-4xl font-bold text-center text-blue-900 mb-10">
+        Premium Insights Just for You
+      </h3>
 
-      {features.redFlags.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <h4 className="font-bold text-red-800 mb-2">⚠️ Red Flags Detected</h4>
-          <ul className="list-disc pl-6 text-red-700">
-            {features.redFlags.map((flag, i) => <li key={i}>{flag}</li>)}
-          </ul>
-        </div>
-      )}
+      <div className="grid md:grid-cols-2 gap-10">
+        {/* Red Flags */}
+        {features.redFlags?.length > 0 && (
+          <div className="bg-red-50 border-l-8 border-red-600 rounded-2xl p-8 shadow-xl">
+            <h4 className="text-2xl font-bold text-red-800 mb-4 flex items-center">
+              <span className="text-4xl mr-4">⚠️</span> Red Flags Found
+            </h4>
+            <ul className="space-y-3 text-lg text-red-700">
+              {features.redFlags.map((flag, i) => (
+                <li key={i} className="flex items-start">
+                  <span className="mr-3">•</span>
+                  <span>{flag}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="glass-card p-6">
-          <h4 className="font-bold mb-3">💰 Estimated Savings</h4>
-          <p className="text-2xl font-bold text-green-600">{features.estimatedSavings.potentialSavings}</p>
-          <p className="text-gray-600">{features.estimatedSavings.reason}</p>
-        </div>
-
-        <div className="glass-card p-6">
-          <h4 className="font-bold mb-3">🏥 Insurance Coverage</h4>
-          <p className="font-medium">{features.insuranceLookup.insurer}</p>
-          <p className="text-gray-600">{features.insuranceLookup.coverageNote}</p>
+        {/* Estimated Savings */}
+        <div className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 shadow-xl">
+          <h4 className="text-2xl font-bold text-green-800 mb-4 flex items-center">
+            <span className="text-4xl mr-4">💰</span> Potential Savings
+          </h4>
+          <p className="text-3xl font-bold text-green-700">{features.estimatedSavings?.potentialSavings || "$200–$800"}</p>
+          <p className="text-lg text-green-700 mt-3">{features.estimatedSavings?.reason || "Common overcharges on office visits, labs, and imaging"}</p>
         </div>
       </div>
 
-      <div className="glass-card p-6">
-        <h4 className="font-bold mb-3">📄 Appeal Letter Draft</h4>
-        <pre className="whitespace-pre-wrap text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+      {/* Appeal Letter */}
+      <div className="bg-indigo-50 border-l-8 border-indigo-600 rounded-2xl p-8 shadow-xl">
+        <h4 className="text-2xl font-bold text-indigo-800 mb-4 flex items-center">
+          <span className="text-4xl mr-4">✉️</span> Ready-to-Send Appeal Letter
+        </h4>
+        <pre className="whitespace-pre-wrap text-lg bg-white p-6 rounded-xl border">
           {features.appealLetter}
         </pre>
       </div>
 
-      <div className="glass-card p-6">
-        <h4 className="font-bold mb-3">💡 Next Steps</h4>
-        <p className="text-gray-700">{features.customAdvice}</p>
-      </div>
-
-      <div className="text-center">
-        <p className="text-sm text-gray-500">
-          Share this explanation: <a href={features.shareableLink} className="text-primary underline">{features.shareableLink}</a>
-        </p>
-        <p className="text-sm text-gray-500 mt-2">
-          Need help? Email <a href="mailto:support@explainmybill.com" className="text-primary">support@explainmybill.com</a>
+      {/* Custom Advice */}
+      <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl text-center">
+        <h4 className="text-2xl font-bold text-blue-800 mb-4">💡 Your Next Steps</h4>
+        <p className="text-xl text-blue-700 leading-relaxed">
+          {features.customAdvice || "Contact your provider for an itemized bill. Call insurance with CPT codes. Check fairhealthconsumer.org for average costs in your area."}
         </p>
       </div>
     </div>
