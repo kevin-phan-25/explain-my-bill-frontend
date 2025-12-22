@@ -9,7 +9,6 @@ export default function PaidFeatures({ features }) {
 
   return (
     <div className="mt-12 space-y-10">
-
       <h3 className="text-4xl font-bold text-center text-blue-900 mb-10">
         Premium Insights Just for You
       </h3>
