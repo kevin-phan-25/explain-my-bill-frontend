@@ -12,10 +12,10 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-
   const mainContentRef = useRef(null);
 
   const handleResult = (data) => {
+    if (!data) return; // prevent blank page
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
@@ -43,86 +43,86 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 7 Realistic Sample Bills
+  // Sample Bills
   const sampleBills = [
-    { name: "Routine Check-Up (Normal)", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg", type: 'routine' },
-    { name: "Emergency Room (High Charge)", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg", type: 'er' },
-    { name: "Denied Lab Tests", image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg", type: 'denied' },
-    { name: "Surprise Ambulance Bill", image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png", type: 'ambulance' },
-    { name: "Out-of-Network Specialist", image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true&u=1javjt", type: 'out_network' },
-    { name: "Dental Cleaning + X-Ray", image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png", type: 'dental' },
-    { name: "Eye Exam & Glasses (Vision)", image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg", type: 'vision' }
+    { name: "Routine Check-Up", type: "routine", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg" },
+    { name: "Emergency Room", type: "er", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg" },
+    { name: "Denied Lab Tests", type: "denied", image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg" },
+    { name: "Ambulance Bill", type: "ambulance", image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png" },
+    { name: "Out-of-Network Specialist", type: "out_network", image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true&u=1javjt" },
+    { name: "Dental Cleaning + X-Ray", type: "dental", image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png" },
+    { name: "Eye Exam & Glasses", type: "vision", image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg" }
   ];
 
   const sampleResults = {
     routine: {
-      tldr: "Quick TL;DR: Routine check-up, normal charges, no issues.",
+      tldr: "Your Free TL;DR: Routine check-up, normal charges.",
       features: {
-        cptExplanations: ["99213 - Office visit, 15 minutes", "80050 - General health panel lab tests"],
+        cptExplanations: ["99213 - Office visit", "80050 - Health panel lab"],
         redFlags: [],
-        estimatedSavings: { potentialSavings: "$50–$150", reason: "Routine lab and visit charges often overbilled" },
-        appealLetter: "Dear Provider,\nI reviewed my routine check-up charges. Please confirm these are accurate.",
-        customAdvice: "No major issues. Keep records for future reference."
+        estimatedSavings: { potentialSavings: "$50–$150", reason: "Routine labs may be overbilled" },
+        appealLetter: "Dear Provider,\nPlease confirm these charges.",
+        customAdvice: "Keep records for future reference."
       }
     },
     er: {
-      tldr: "Quick TL;DR: ER visit, high charges, possible overbilling.",
+      tldr: "Your Free TL;DR: ER visit, high charges.",
       features: {
-        cptExplanations: ["99285 - Emergency visit, high complexity", "71020 - Chest X-ray"],
-        redFlags: ["ER charges unusually high compared to average"],
-        estimatedSavings: { potentialSavings: "$500–$1200", reason: "ER overcharges are common" },
-        appealLetter: "Dear Provider,\nPlease review the emergency visit charges, as they seem high.",
-        customAdvice: "Check if insurance covers ER visit fully, consider appeal if not."
+        cptExplanations: ["99285 - ER high complexity", "71020 - Chest X-ray"],
+        redFlags: ["ER charges unusually high"],
+        estimatedSavings: { potentialSavings: "$500–$1200", reason: "Common overcharges in ER" },
+        appealLetter: "Dear Provider,\nPlease review ER charges.",
+        customAdvice: "Check insurance coverage."
       }
     },
     denied: {
-      tldr: "Quick TL;DR: Lab tests denied by insurance.",
+      tldr: "Your Free TL;DR: Lab tests denied by insurance.",
       features: {
-        cptExplanations: ["80053 - Comprehensive metabolic panel", "85025 - Complete blood count"],
-        redFlags: ["Insurance denied these lab tests"],
+        cptExplanations: ["80053 - Metabolic panel", "85025 - CBC"],
+        redFlags: ["Insurance denied these labs"],
         estimatedSavings: { potentialSavings: "$200–$400", reason: "Denied labs can be appealed" },
-        appealLetter: "Dear Insurance,\nPlease reconsider denial for lab tests 80053 and 85025.",
+        appealLetter: "Dear Insurance,\nPlease reconsider denied labs.",
         customAdvice: "Submit appeal with provider notes."
       }
     },
     ambulance: {
-      tldr: "Quick TL;DR: Surprise ambulance charge, potentially out-of-network.",
+      tldr: "Your Free TL;DR: Surprise ambulance charge.",
       features: {
-        cptExplanations: ["A0427 - Ambulance service, advanced life support"],
-        redFlags: ["Ambulance billed at out-of-network rate"],
-        estimatedSavings: { potentialSavings: "$300–$700", reason: "Ambulance charges often overestimated" },
-        appealLetter: "Dear Provider,\nPlease clarify ambulance charges and network coverage.",
-        customAdvice: "Check insurance network rules, negotiate if needed."
+        cptExplanations: ["A0427 - Ambulance, advanced life support"],
+        redFlags: ["Out-of-network rate billed"],
+        estimatedSavings: { potentialSavings: "$300–$700", reason: "Ambulance overcharges common" },
+        appealLetter: "Dear Provider,\nPlease clarify ambulance charges.",
+        customAdvice: "Negotiate or verify coverage."
       }
     },
     out_network: {
-      tldr: "Quick TL;DR: Out-of-network specialist visit, high balance.",
+      tldr: "Your Free TL;DR: Out-of-network specialist visit.",
       features: {
-        cptExplanations: ["99214 - Specialist visit", "CPT 93000 - ECG"],
-        redFlags: ["Out-of-network billing may be higher than allowed"],
+        cptExplanations: ["99214 - Specialist visit", "93000 - ECG"],
+        redFlags: ["Out-of-network billing high"],
         estimatedSavings: { potentialSavings: "$400–$900", reason: "Negotiate out-of-network charges" },
-        appealLetter: "Dear Insurance,\nRequesting coverage adjustment for out-of-network charges.",
-        customAdvice: "Ask provider for in-network options or discounts."
+        appealLetter: "Dear Insurance,\nRequest adjustment.",
+        customAdvice: "Ask provider for discounts."
       }
     },
     dental: {
-      tldr: "Quick TL;DR: Dental cleaning and X-Ray, typical charges.",
+      tldr: "Your Free TL;DR: Dental cleaning & X-Ray.",
       features: {
-        cptExplanations: ["D1110 - Adult prophylaxis", "D0210 - Intraoral X-ray"],
+        cptExplanations: ["D1110 - Cleaning", "D0210 - X-ray"],
         redFlags: [],
-        estimatedSavings: { potentialSavings: "$50–$100", reason: "Dental offices sometimes overcharge labs/X-rays" },
-        appealLetter: "Dear Provider,\nPlease review the dental charges.",
-        customAdvice: "Confirm insurance coverage for dental."
+        estimatedSavings: { potentialSavings: "$50–$100", reason: "Dental labs sometimes overcharged" },
+        appealLetter: "Dear Provider,\nPlease review dental charges.",
+        customAdvice: "Confirm coverage."
       }
     },
     vision: {
-      tldr: "Quick TL;DR: Eye exam and glasses, standard charges.",
+      tldr: "Your Free TL;DR: Eye exam & glasses.",
       features: {
-        cptExplanations: ["92014 - Comprehensive eye exam", "92340 - Glasses lenses"],
+        cptExplanations: ["92014 - Eye exam", "92340 - Lenses"],
         redFlags: [],
         estimatedSavings: { potentialSavings: "$50–$200", reason: "Vision costs vary widely" },
-        appealLetter: "Dear Provider,\nReview vision exam and lenses charges.",
-        customAdvice: "Check coverage and compare prices online."
+        appealLetter: "Dear Provider,\nPlease review vision charges.",
+        customAdvice: "Check coverage."
       }
     }
   };
@@ -130,7 +130,6 @@ function App() {
   const loadSampleFromImage = (type, e) => {
     e.preventDefault();
     setLoading(true);
-
     setTimeout(() => {
       handleResult({ ...sampleResults[type], isPaid: true });
       setLoading(false);
