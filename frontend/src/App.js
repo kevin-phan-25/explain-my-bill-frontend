@@ -6,7 +6,7 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Replace with live key when ready
+const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Test mode
 
 function App() {
   const [result, setResult] = useState(null);
@@ -32,68 +32,176 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // Sample Bill Images (click to analyze)
+  // 6 Realistic Sample Bills
   const sampleBills = [
     {
-      name: "Simple Office Visit",
-      image: "https://i.imgur.com/8yR0k2L.png", // Realistic office bill
-      type: 'office'
+      name: "Routine Check-Up (Normal)",
+      image: "https://i.imgur.com/8yR0k2L.png",
+      type: 'routine'
     },
     {
-      name: "ER Visit (Possible Overcharge)",
-      image: "https://i.imgur.com/3jK9pLm.png", // ER bill with high charge
-      type: 'er'
+      name: "ER Visit – High Charge",
+      image: "https://i.imgur.com/3jK9pLm.png",
+      type: 'er_high'
     },
     {
-      name: "Denied Insurance Claim",
-      image: "https://i.imgur.com/X7vN4qP.png", // Denied lab test
-      type: 'denied'
+      name: "Denied Lab Tests",
+      image: "https://i.imgur.com/X7vN4qP.png",
+      type: 'denied_lab'
+    },
+    {
+      name: "Surprise Ambulance Bill",
+      image: "https://i.imgur.com/AmbulanceBillExample.jpg", // placeholder realistic
+      type: 'ambulance'
+    },
+    {
+      name: "Out-of-Network Specialist",
+      image: "https://i.imgur.com/OutOfNetworkExample.jpg",
+      type: 'out_network'
+    },
+    {
+      name: "Dental Cleaning + X-Ray",
+      image: "https://i.imgur.com/DentalBillExample.jpg",
+      type: 'dental'
     }
   ];
 
   const loadSampleFromImage = (type) => {
     setLoading(true);
     setTimeout(() => {
-      // Replace with your actual sample data from previous versions
       let sampleData = {};
 
-      if (type === 'office') {
+      if (type === 'routine') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "This is a routine office visit bill.\n\nThe charge is $180 for a standard visit (CPT code 99213).\n\nInsurance paid $144 (80%).\n\nYou owe $36 — this is normal and fair.\n\nNo red flags." }],
-          fullExplanation: "You owe $36 for a normal check-up.",
+          pages: [{
+            page: 1,
+            explanation: "This is a routine annual check-up with your primary doctor.\n\n" +
+              "Services: Office visit (CPT 99214 - established patient, moderate complexity)\n" +
+              "Charged: $195\n" +
+              "Insurance allowed: $142 (in-network rate)\n" +
+              "Insurance paid: $113.60 (80%)\n\n" +
+              "You owe: $28.40 — this is normal and expected.\n\n" +
+              "No red flags detected."
+          }],
+          fullExplanation: "Normal annual check-up. You owe $28.40.",
           paidFeatures: {
             redFlags: [],
             estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "Blue Cross", coverageNote: "Covers 80% of office visits" },
-            appealLetter: "No appeal needed — bill is correct.",
-            customAdvice: "Pay the $36 or set up a payment plan.",
+            insuranceLookup: { insurer: "Blue Cross Blue Shield", coverageNote: "Covers preventive visits at 100% if annual wellness" },
+            appealLetter: "No appeal needed.",
+            customAdvice: "This is a standard charge. Pay the balance or set up a payment plan.",
           }
         };
-      } else if (type === 'er') {
+      } else if (type === 'er_high') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "This is an emergency room bill.\n\nYou were charged $2,800 for a Level 4 ER visit.\n\nInsurance paid $1,200.\n\nYou owe $1,600 — this is VERY HIGH.\n\nRED FLAG: ER charges are often inflated.\n\nAverage cost is $1,200–$1,800.\n\nYou may be overcharged." }],
-          fullExplanation: "You owe $1,600 — likely overcharged.",
+          pages: [{
+            page: 1,
+            explanation: "This is an emergency room visit bill.\n\n" +
+              "Level 5 ER visit (highest complexity) charged at $4,200\n" +
+              "Facility fee: $2,800\n" +
+              "Physician fee: $1,400\n\n" +
+              "Insurance paid: $1,800\n" +
+              "You owe: $2,400\n\n" +
+              "RED FLAG: ER facility fees are often inflated 5–10x fair price.\n" +
+              "National average for Level 5 ER visit: $1,200–$2,000\n\n" +
+              "You may be overcharged by $1,000+"
+          }],
+          fullExplanation: "High ER bill — likely overcharged.",
           paidFeatures: {
-            redFlags: ["Possible overcharge of $800–$1,000"],
-            estimatedSavings: { potentialSavings: "$800+" },
-            insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Check if facility was in-network" },
-            appealLetter: "Dear Insurance,\n\nI am appealing the $2,800 ER charge...\n\nThis is above fair pricing.",
-            customAdvice: "Request itemized bill. Compare to fairhealthconsumer.org. File appeal.",
+            redFlags: ["Facility fee appears inflated", "Total charge 2x national average"],
+            estimatedSavings: { potentialSavings: "$1,000–$2,000" },
+            insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Often negotiates ER bills" },
+            appealLetter: "Dear UnitedHealthcare,\n\nI am appealing the $4,200 ER facility charge from [date]...\n\nThis is significantly above fair market rates.",
+            customAdvice: "Request itemized bill. Compare to fairhealthconsumer.org. Ask hospital for charity care or discount.",
           }
         };
-      } else if (type === 'denied') {
+      } else if (type === 'denied_lab') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "This bill shows a denied claim.\n\nYou were charged $450 for lab tests.\n\nInsurance denied it saying 'not medically necessary'.\n\nYou owe the full $450.\n\nRED FLAG: Denials can often be appealed successfully.\n\n70% of appeals win." }],
-          fullExplanation: "Insurance denied $450 in lab tests.",
+          pages: [{
+            page: 1,
+            explanation: "This bill is for blood work and lab tests.\n\n" +
+              "Total charged: $680\n" +
+              "Insurance denied all charges citing 'not medically necessary'\n\n" +
+              "You owe full amount: $680\n\n" +
+              "RED FLAG: Lab denials are common but often overturned on appeal.\n" +
+              "Success rate: ~70% when appealed with doctor letter."
+          }],
+          fullExplanation: "Lab tests denied — appeal recommended.",
           paidFeatures: {
-            redFlags: ["Claim denied — appeal recommended"],
-            estimatedSavings: { potentialSavings: "$450" },
-            insuranceLookup: { insurer: "Aetna", coverageNote: "Appeals have high success rate" },
-            appealLetter: "Dear Aetna,\n\nI appeal the denial of lab tests on [date]...\n\nThese were ordered by my doctor and medically necessary.",
-            customAdvice: "Get a letter from your doctor explaining necessity. Submit appeal within 180 days.",
+            redFlags: ["Full denial of routine labs", "No medical necessity letter attached"],
+            estimatedSavings: { potentialSavings: "$680" },
+            insuranceLookup: { insurer: "Aetna", coverageNote: "Requires pre-authorization for some labs" },
+            appealLetter: "Dear Aetna,\n\nI appeal the denial of lab tests ordered by Dr. Smith on [date]...\n\nThese were medically necessary for ongoing condition monitoring.",
+            customAdvice: "Get a letter of medical necessity from your doctor. Submit appeal within 180 days.",
+          }
+        };
+      } else if (type === 'ambulance') {
+        sampleData = {
+          isPaid: true,
+          pages: [{
+            page: 1,
+            explanation: "This is an ambulance transport bill.\n\n" +
+              "Base rate + mileage: $1,800\n" +
+              "Insurance paid: $400\n" +
+              "You owe: $1,400\n\n" +
+              "RED FLAG: Ambulance bills are frequently surprise charges and often reduced on appeal.\n" +
+              "Many states have balance billing protections."
+          }],
+          fullExplanation: "Surprise ambulance bill — common issue.",
+          paidFeatures: {
+            redFlags: ["Possible surprise billing", "High mileage charge"],
+            estimatedSavings: { potentialSavings: "$800–$1,200" },
+            insuranceLookup: { insurer: "Cigna", coverageNote: "Check for ground ambulance coverage" },
+            appealLetter: "Dear Cigna,\n\nI am appealing the $1,800 ambulance charge...\n\nThis was emergency transport.",
+            customAdvice: "Check if ambulance was in-network. Ask for 'no surprise billing' protection.",
+          }
+        };
+      } else if (type === 'out_network') {
+        sampleData = {
+          isPaid: true,
+          pages: [{
+            page: 1,
+            explanation: "This bill is from a specialist visit.\n\n" +
+              "Charge: $650 for consultation\n" +
+              "Specialist was out-of-network\n" +
+              "Insurance paid: $120\n" +
+              "You owe: $530\n\n" +
+              "RED FLAG: Out-of-network charges can be 3–5x higher.\n" +
+              "You may qualify for in-network rate adjustment."
+          }],
+          fullExplanation: "Out-of-network specialist — high balance.",
+          paidFeatures: {
+            redFlags: ["Out-of-network provider", "Balance billing possible"],
+            estimatedSavings: { potentialSavings: "$300–$400" },
+            insuranceLookup: { insurer: "Anthem", coverageNote: "May adjust to in-network rate on appeal" },
+            appealLetter: "Dear Anthem,\n\nThe specialist was out-of-network without my knowledge...\n\nPlease adjust to in-network rate.",
+            customAdvice: "Ask if provider accepts your insurance. Request 'gap exception'.",
+          }
+        };
+      } else if (type === 'dental') {
+        sampleData = {
+          isPaid: true,
+          pages: [{
+            page: 1,
+            explanation: "This is a dental cleaning and exam bill.\n\n" +
+              "Cleaning (D1110): $120\n" +
+              "X-rays (D0210): $85\n" +
+              "Exam (D0150): $65\n" +
+              "Total: $270\n\n" +
+              "Dental insurance paid: $180\n" +
+              "You owe: $90\n\n" +
+              "No red flags — standard dental charges."
+          }],
+          fullExplanation: "Normal dental cleaning — you owe $90.",
+          paidFeatures: {
+            redFlags: [],
+            estimatedSavings: { potentialSavings: "$0" },
+            insuranceLookup: { insurer: "Delta Dental", coverageNote: "Covers cleanings at 100% twice per year" },
+            appealLetter: "No appeal needed.",
+            customAdvice: "This is standard. Check if you have unused annual maximum.",
           }
         };
       }
@@ -131,30 +239,30 @@ function App() {
         <h2 className="text-4xl font-bold text-center text-blue-900 mb-12">
           Try a Sample Bill Instantly
         </h2>
-        <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 max-w-7xl mx-auto">
           {sampleBills.map((bill, i) => (
             <div key={i} className="text-center">
               <button
                 onClick={() => loadSampleFromImage(bill.type)}
-                className="block w-full transform hover:scale-105 transition duration-300"
+                className="block w-full transform hover:scale-105 transition duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300"
                 aria-label={`Analyze sample ${bill.name}`}
               >
                 <img 
                   src={bill.image} 
                   alt={`Sample ${bill.name} medical bill`}
-                  className="w-full rounded-2xl shadow-2xl border-4 border-blue-200 hover:border-blue-500 transition"
+                  className="w-full rounded-3xl shadow-2xl border-8 border-blue-200 hover:border-blue-600 transition"
                 />
-                <p className="mt-6 text-2xl font-bold text-blue-900">
+                <p className="mt-8 text-3xl font-bold text-blue-900">
                   {bill.name}
                 </p>
-                <p className="text-lg text-gray-600">Click to explain</p>
+                <p className="text-xl text-gray-600 mt-2">Click to get explanation</p>
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* FairHealth Info – Prominent Link */}
+      {/* FairHealth Info */}
       <div className="container mx-auto px-6 mt-20 max-w-4xl">
         <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-10 shadow-xl">
           <h3 className="text-3xl font-bold text-blue-900 mb-4">What is FairHealth?</h3>
