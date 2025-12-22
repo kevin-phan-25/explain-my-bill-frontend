@@ -1,46 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createCheckoutSession } from '../api/explainApi';
 
 export default function UpgradeModal({ onClose, stripePromise }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const handlePayment = async (plan) => {
+    setLoading(true);
+    setError('');
+
     try {
-      const { id } = await createCheckoutSession(plan);
+      const result = await createCheckoutSession(plan);
+      if (!result.success) throw new Error(result.error);
+
       const stripe = await stripePromise;
-      await stripe.redirectToCheckout({ sessionId: id });
+      const { error: stripeError } = await stripe.redirectToCheckout({
+        sessionId: result.sessionId,
+      });
+
+      if (stripeError) throw stripeError;
     } catch (err) {
-      alert("Payment error: " + err.message);
+      setError(err.message || "Payment failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="glass-card max-w-md w-full p-8">
-        <h2 className="text-3xl font-bold mb-6">Unlock Full Explanation</h2>
-        <p className="text-gray-600 mb-8">
-          Get the complete, detailed breakdown of every charge, code, and total on your bill.
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="glass-card max-w-2xl w-full p-10 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-3xl"
+          disabled={loading}
+        >
+          ×
+        </button>
+
+        <h2 className="text-4xl font-bold mb-6 text-center">Unlock Full Explanation</h2>
+        <p className="text-xl text-gray-600 text-center mb-10">
+          Get the complete, detailed breakdown of every charge, code, and total.
         </p>
 
-        <div className="grid grid-cols-2 gap-6">
+        {error && (
+          <p className="text-red-600 text-center mb-6 text-lg">{error}</p>
+        )}
+
+        <div className="grid md:grid-cols-2 gap-8 mb-10">
           <button
             onClick={() => handlePayment('one-time')}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition"
+            disabled={loading}
+            className="bg-gradient-to-br from-green-500 to-emerald-600 text-white py-8 rounded-2xl font-bold text-2xl hover:scale-105 transition disabled:opacity-70"
           >
-            One-Time<br />$9.99
+            <div>One-Time</div>
+            <div className="text-4xl mt-2">$9.99</div>
+            <div className="text-lg mt-4">Full access forever</div>
+            {loading && <div className="mt-4 text-sm">Processing...</div>}
           </button>
+
           <button
             onClick={() => handlePayment('monthly')}
-            className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition"
+            disabled={loading}
+            className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white py-8 rounded-2xl font-bold text-2xl hover:scale-105 transition disabled:opacity-70"
           >
-            Monthly<br />$4.99/mo
+            <div>Monthly</div>
+            <div className="text-4xl mt-2">$4.99/mo</div>
+            <div className="text-lg mt-4">Unlimited bills</div>
+            {loading && <div className="mt-4 text-sm">Processing...</div>}
           </button>
         </div>
 
-        <button
-          onClick={onClose}
-          className="mt-6 text-gray-500 hover:text-gray-700"
-        >
-          Maybe later
-        </button>
+        <p className="text-center text-gray-500">
+          Secure payment powered by Stripe
+        </p>
       </div>
     </div>
   );
