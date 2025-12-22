@@ -17,9 +17,9 @@ function App() {
   const handleResult = (data) => {
     if (!data) return;
 
-    // DEVELOPER MODE: You always get full access, no paywall
+    // DEVELOPER FULL ACCESS: You always get the full paid experience
     // This works on localhost, Render, any domain — perfect for testing
-    const isDeveloper = true; // Set to false when launching to real users
+    const isDeveloper = true; // Change to false when launching to real users
 
     if (isDeveloper) {
       data.isPaid = true;
@@ -30,7 +30,6 @@ function App() {
 
     setResult(data);
 
-    // Smooth scroll to explanation
     setTimeout(() => {
       if (mainContentRef.current) {
         mainContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -44,7 +43,6 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Sample Bills (unchanged)
   const sampleBills = [
     { name: "Routine Check-Up", type: "routine", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg" },
     { name: "Emergency Room", type: "er", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg" },
@@ -181,7 +179,6 @@ function App() {
         {loading && <Loader />}
         {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />}
       </main>
-      {/* Sample Bills Section */}
       <div className="container mx-auto px-6 mt-8">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
           Or Try a Sample Bill Instantly
@@ -208,7 +205,6 @@ function App() {
           ))}
         </div>
       </div>
-      {/* FairHealth Link */}
       <div className="container mx-auto px-6 mt-16 max-w-4xl">
         <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl">
           <h3 className="text-2xl font-bold text-blue-900 mb-4">What is FairHealth?</h3>
