@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import BillUploader from './components/BillUploader';
 import ExplanationCard from './components/ExplanationCard';
@@ -12,11 +12,13 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const mainContentRef = useRef(null);
 
   const handleResult = (data) => {
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
+    // Auto-unlock for dev
     if (isDev) {
       data.isPaid = true;
       setShowUpgrade(false);
@@ -25,6 +27,11 @@ function App() {
     }
 
     setResult(data);
+
+    // Scroll to top to show the explanation card
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const resetToUpload = () => {
@@ -32,45 +39,36 @@ function App() {
     setShowUpgrade(false);
   };
 
+  // Sample Bills
   const sampleBills = [
-    { name: "Routine Check-Up (Normal)", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg", type: 'routine' },
-    { name: "Emergency Room (High Charge)", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg", type: 'er' },
+    { name: "Routine Check-Up", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg", type: 'routine' },
+    { name: "Emergency Room Visit", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg", type: 'er' },
     { name: "Denied Lab Tests", image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg", type: 'denied' },
-    { name: "Surprise Ambulance Bill", image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png", type: 'ambulance' },
+    { name: "Ambulance Surprise Bill", image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png", type: 'ambulance' },
     { name: "Out-of-Network Specialist", image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true&u=1javjt", type: 'out_network' },
     { name: "Dental Cleaning + X-Ray", image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png", type: 'dental' },
-    { name: "Eye Exam & Glasses (Vision)", image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg", type: 'vision' }
+    { name: "Eye Exam & Glasses", image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg", type: 'vision' }
   ];
 
   const loadSampleFromImage = (type, e) => {
     e.preventDefault();
     setLoading(true);
+
     setTimeout(() => {
-      // ✅ Fully populated sample data for ExplanationCard
-      const sampleData = {
-        isPaid: false,
-        tldr: `Quick summary for ${type} bill: total seems high compared to average.`,
-        cptExplanations: [
-          "CPT 99213: Office visit, moderate complexity.",
-          "CPT 80053: Comprehensive metabolic panel lab test.",
-          "CPT 70450: CT scan of head without contrast."
-        ],
-        redFlags: [
-          "Duplicate billing detected",
-          "Out-of-network charge without prior authorization",
-          "Lab test denied by insurance"
-        ],
-        estimatedSavings: {
-          potentialSavings: "$250–$700",
-          reason: "Overcharges on office visit and lab tests"
-        },
-        appealLetter: `Dear Billing Department,
-
-I am writing to dispute the charges for my recent ${type} bill. I noticed overcharges and denied claims for lab tests. Please review and provide an updated statement.
-
-Thank you,
-[Your Name]`,
-        customAdvice: "Call your insurance to clarify denied items. Review CPT codes and negotiate out-of-network charges. Check fairhealthconsumer.org for cost reference."
+      // Example: simulated sample bill result
+      let sampleData = {
+        isPaid: false, // free summary
+        quickSummary: "This is a free quick summary of the sample bill, highlighting main charges and unusual items.",
+        paidFeatures: {
+          cptExplanations: ["CPT 99213: Office visit", "CPT 80053: Basic metabolic panel"],
+          redFlags: ["Charge appears unusually high compared to average costs."],
+          estimatedSavings: {
+            potentialSavings: "$150–$600",
+            reason: "Common overcharges on labs and office visits."
+          },
+          appealLetter: "Dear Provider,\n\nI am requesting an itemized bill and clarification on unusual charges...",
+          customAdvice: "Contact your insurance for verification. Compare CPT codes with FairHealth averages."
+        }
       };
 
       handleResult(sampleData);
@@ -79,7 +77,7 @@ Thank you,
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50" ref={mainContentRef}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-6 py-3 rounded-lg z-50">
         Skip to main content
       </a>
@@ -105,7 +103,7 @@ Thank you,
         <div className="glass-card p-6 shadow-2xl">
           <h2 className="text-2xl font-bold text-center text-blue-900 mb-4">Upload Your Medical Bill</h2>
           <p className="text-base text-center text-gray-700 mb-6">
-            Get a clear TL;DR summary immediately — secure and private. Upgrade to see detailed explanations, red flags, and money-saving tips.
+            Get a <strong>quick summary</strong> immediately — secure and private. Upgrade to unlock detailed explanations, red flags, and potential savings.
           </p>
 
           <BillUploader onResult={handleResult} onLoading={setLoading} />
@@ -133,7 +131,7 @@ Thank you,
       {/* Sample Bills */}
       <div className="container mx-auto px-6 mt-8">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
-          Or Try a Sample Bill Instantly
+          Try a Sample Bill Instantly
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {sampleBills.map((bill, i) => (
@@ -151,7 +149,7 @@ Thank you,
                 <p className="mt-6 text-2xl font-bold text-blue-900">
                   {bill.name}
                 </p>
-                <p className="text-lg text-gray-600 mt-2">Click to get explanation</p>
+                <p className="text-lg text-gray-600 mt-2">Click to view quick summary</p>
               </button>
             </div>
           ))}
