@@ -6,7 +6,11 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_live_YourPublishableKeyHere'); // Replace with your live key when ready
+// TEST MODE (safe for development)
+const stripePromise = loadStripe('pk_test_51YourTestPublishableKeyHere'); 
+
+// FOR LIVE MODE (when ready):
+// const stripePromise = loadStripe('pk_live_51YourLivePublishableKeyHere');
 
 function App() {
   const [result, setResult] = useState(null);
@@ -14,7 +18,7 @@ function App() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleResult = (data) => {
-    // Developer bypass: Always show full paid features during development/testing
+    // Developer bypass: always show full features during testing
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
@@ -28,9 +32,48 @@ function App() {
     setResult(data);
   };
 
+  // Sample bill for testing (no upload needed)
+  const loadSampleBill = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const sampleData = {
+        isPaid: true, // Force paid for demo
+        pages: [
+          {
+            page: 1,
+            explanation: "Your bill is for an office visit with Dr. Smith on December 1, 2025.\n\n" +
+                         "The main charge is $180 for a standard check-up (CPT code 99213).\n\n" +
+                         "Your insurance covered $144 (80%), leaving you responsible for $36.\n\n" +
+                         "No red flags found — this is a normal charge for this type of visit.\n\n" +
+                         "You owe $36.",
+          }
+        ],
+        fullExplanation: "Your bill is for an office visit with Dr. Smith on December 1, 2025.\n\n" +
+                         "The main charge is $180 for a standard check-up (CPT code 99213).\n\n" +
+                         "Your insurance covered $144 (80%), leaving you responsible for $36.\n\n" +
+                         "No red flags found — this is a normal charge for this type of visit.\n\n" +
+                         "You owe $36.",
+        paidFeatures: {
+          downloadablePdf: true,
+          redFlags: [],
+          codeExplanations: { cpt: ["99213"], icd: [] },
+          costComparison: { averageCost: "$150", yourCharge: "$180", note: "Slightly above average but reasonable" },
+          estimatedSavings: { potentialSavings: "$0", reason: "No overcharges detected" },
+          insuranceLookup: { insurer: "Blue Cross", coverageNote: "Typically covers 80% of office visits" },
+          prioritySupportEmail: "support@explainmybill.com",
+          savedHistoryCount: 1,
+          shareableLink: "https://explainmybill.com/share/demo123",
+          customAdvice: "Pay the $36 balance or set up a payment plan with your provider.",
+        },
+      };
+      handleResult(sampleData);
+      setLoading(false);
+    }, 1500);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
-      {/* Skip to main for accessibility */}
+      {/* Skip to main */}
       <a 
         href="#main-content" 
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-6 py-3 rounded-lg z-50"
@@ -55,6 +98,16 @@ function App() {
           <strong className="text-xl">Your privacy is guaranteed.</strong> We process your bill securely and delete it immediately. 
           No data is stored. We are not HIPAA-certified because we retain zero health information.
         </div>
+      </div>
+
+      {/* Sample Bill Button */}
+      <div className="text-center mt-10">
+        <button
+          onClick={loadSampleBill}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-10 rounded-2xl text-xl shadow-lg transition"
+        >
+          Try a Sample Bill (No Upload Needed)
+        </button>
       </div>
 
       {/* Main Content */}
