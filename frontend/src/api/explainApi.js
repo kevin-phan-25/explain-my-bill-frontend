@@ -1,4 +1,13 @@
-const WORKER_URL = process.env.REACT_APP_WORKER_URL;
+const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+
+export async function explainBill(formData) {
+  const res = await fetch(WORKER_URL, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Failed to analyze bill");
+  return res.json();
+}
 
 export async function createCheckoutSession(plan) {
   const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
@@ -6,22 +15,6 @@ export async function createCheckoutSession(plan) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ plan }),
   });
-  return res.json();
-}
-
-export async function explainBill(file, sessionId = null) {
-  const formData = new FormData();
-  formData.append("bill", file);
-  if (sessionId) formData.append("sessionId", sessionId);
-
-  const res = await fetch(WORKER_URL, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to process bill: ${text}`);
-  }
+  if (!res.ok) throw new Error("Payment failed");
   return res.json();
 }
