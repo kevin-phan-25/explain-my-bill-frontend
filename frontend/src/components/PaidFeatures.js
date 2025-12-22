@@ -7,6 +7,13 @@ export default function PaidFeatures({ features }) {
         Premium Insights Just for You
       </h3>
 
+      {/* TL;DR Highlight for Paid Users */}
+      <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-2xl shadow-md text-center">
+        <p className="text-xl font-semibold text-amber-900 mb-2">
+          🔹 You already have your free TL;DR. Here's the full explanation with all red flags, appeal letters, and savings!
+        </p>
+      </div>
+
       {/* CPT Code Explanations */}
       {features.cptExplanations?.length > 0 && (
         <div className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 shadow-xl">
