@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PageTab from './PageTab';
+import PaidFeatures from './PaidFeatures';
 
 export default function ExplanationCard({ result, onUpgrade }) {
   const [activePage, setActivePage] = useState(0);
@@ -7,44 +7,43 @@ export default function ExplanationCard({ result, onUpgrade }) {
   return (
     <div className="space-y-8">
       <div className="glass-card p-8">
-        <h2 className="text-3xl font-bold mb-4">Your Bill Explanation</h2>
+        <h2 className="text-3xl font-bold mb-6">Your Bill Explanation</h2>
 
         {!result.isPaid && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
-            <p className="text-lg font-medium text-amber-800">
-              This is a free teaser summary. Upgrade for the full detailed breakdown.
+            <p className="text-lg">
+              This is a free summary. <strong>Upgrade</strong> for the full detailed explanation, red flags, appeal letter, and more.
             </p>
             <button onClick={onUpgrade} className="btn-primary mt-4">
-              Unlock Full Explanation
+              Unlock Full Features
             </button>
           </div>
         )}
 
-        <div className="flex overflow-x-auto gap-4 pb-4 mb-8">
+        <div className="flex flex-wrap gap-3 mb-8">
           {result.pages.map((page, i) => (
-            <PageTab
+            <button
               key={i}
-              page={page}
-              active={i === activePage}
               onClick={() => setActivePage(i)}
-            />
+              className={`px-6 py-3 rounded-xl font-medium transition ${
+                i === activePage ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Page {page.page}
+            </button>
           ))}
         </div>
 
         <div className="prose prose-lg max-w-none">
-          <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed">
+          <pre className="whitespace-pre-wrap font-sans text-gray-700 dark:text-gray-300 leading-relaxed">
             {result.pages[activePage].explanation}
           </pre>
         </div>
-
-        {result.isPaid && (
-          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-xl">
-            <p className="text-green-800 font-medium">
-              Full explanation unlocked — thank you for your purchase!
-            </p>
-          </div>
-        )}
       </div>
+
+      {result.isPaid && result.paidFeatures && (
+        <PaidFeatures features={result.paidFeatures} />
+      )}
     </div>
   );
 }
