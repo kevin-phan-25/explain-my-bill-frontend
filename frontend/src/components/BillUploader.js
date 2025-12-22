@@ -36,9 +36,11 @@ export default function BillUploader({ onResult, onLoading }) {
         Get a clear, easy-to-understand explanation of charges, codes, insurance adjustments, and what you actually owe.
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} aria-labelledby="upload-heading">
         <div
-          className={`border-4 border-dashed rounded-3xl p-16 text-center transition-all duration-300 ${
+          role="region"
+          aria-label="Bill upload drop zone"
+          className={`border-4 border-dashed rounded-3xl p-16 text-center transition-all duration-300 focus-within:ring-4 focus-within:ring-blue-300 ${
             dragActive ? 'border-blue-500 bg-blue-50 scale-105' : 'border-gray-300'
           } ${loading ? 'opacity-70' : ''}`}
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -55,22 +57,23 @@ export default function BillUploader({ onResult, onLoading }) {
             onChange={(e) => setFile(e.target.files[0])}
             className="hidden"
             id="bill-upload"
+            aria-label="Select bill file to upload"
           />
           <label htmlFor="bill-upload" className="cursor-pointer block">
-            <div className="text-8xl mb-8 text-blue-600">📄</div>
+            <div className="text-8xl mb-8 text-blue-600" aria-hidden="true">📄</div>
             <p className="text-3xl font-bold text-gray-800 mb-4">
               {loading ? "Analyzing your bill..." : "Drop your bill here or click to upload"}
             </p>
             <p className="text-xl text-gray-600">PDF or image • Max 20MB</p>
-            {file && <p className="mt-6 text-2xl text-green-600 font-bold">{file.name}</p>}
+            {file && <p className="mt-6 text-2xl text-green-600 font-bold" aria-live="polite">{file.name}</p>}
             {loading && (
-              <div className="mt-8 w-24 h-24 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <div className="mt-8 w-24 h-24 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" aria-label="Processing"></div>
             )}
           </label>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-300 rounded-xl p-6 mt-8 text-red-700 text-center text-lg">
+          <div role="alert" className="bg-red-50 border border-red-300 rounded-xl p-6 mt-8 text-red-700 text-center text-lg" aria-live="assertive">
             {error}
           </div>
         )}
@@ -79,7 +82,8 @@ export default function BillUploader({ onResult, onLoading }) {
           <button
             type="submit"
             disabled={!file || loading}
-            className="btn-primary"
+            className="btn-primary focus:outline-none focus:ring-4 focus:ring-blue-300"
+            aria-label="Analyze uploaded bill"
           >
             {loading ? "Processing..." : "Explain My Bill"}
           </button>
