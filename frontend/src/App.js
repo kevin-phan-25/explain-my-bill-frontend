@@ -1,50 +1,76 @@
-// frontend/src/api/explainApi.js
+import React, { useState, useEffect } from 'react';
+import BillUploader from './components/BillUploader';
+import ExplanationCard from './components/ExplanationCard';
+import UpgradeModal from './components/UpgradeModal';
+import Loader from './components/Loader';
 
-const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+function App() {
+  // Dark mode state with localStorage persistence
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
-export async function explainBill(formData) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-
-  try {
-    const res = await fetch(WORKER_URL, {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Server error: ${res.status}`);
+  // Sync with system preference on first load
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
 
-    return await res.json(); // Returns { isPaid, pages, fullExplanation }
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new Error("Request timed out. Please try again.");
-    }
-    throw new Error(err.message || "Failed to analyze bill. Please try again.");
-  }
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const handleResult = (data) => {
+    setResult(data);
+    if (!data.isPaid) setShowUpgrade(true);
+  };
+
+  return (
+    <div className="min-h-screen transition-colors duration-500">
+      {/* Dark mode toggle */}
+      <button
+        onClick={() => setDarkMode(!darkMode)}
+        className="fixed top-4 right-4 z-50 p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition"
+        aria-label="Toggle dark mode"
+      >
+        {darkMode ? '☀️' : '🌙'}
+      </button>
+
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <header className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-4">
+            ExplainMyBill
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
+            Upload any bill and get a simple explanation in seconds.
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            🔒 Secure & private – your bill is deleted after analysis
+          </p>
+        </header>
+
+        {!result ? (
+          <BillUploader onResult={handleResult} onLoading={setLoading} />
+        ) : (
+          <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
+        )}
+
+        {loading && <Loader />}
+
+        {showUpgrade && (
+          <UpgradeModal
+            onClose={() => setShowUpgrade(false)}
+            stripePromise={stripePromise}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
-export async function createCheckoutSession(plan) {
-  try {
-    const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Payment setup failed: ${res.status}`);
-    }
-
-    return await res.json(); // Returns { id: sessionId }
-  } catch (err) {
-    throw new Error(err.message || "Payment failed. Please try again.");
-  }
-}
-export default App;
+export default App; // ← Critical: default export for CRA
