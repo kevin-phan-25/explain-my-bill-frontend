@@ -22,7 +22,7 @@ export default function BillUploader({ onResult, onLoading }) {
       const data = await explainBill(formData);
       onResult(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to analyze bill. Please try again.");
     } finally {
       setLoading(false);
       onLoading(false);
@@ -30,18 +30,17 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="glass-card p-10">
-      <h2 className="text-3xl font-bold mb-6 text-center">Upload Your Bill</h2>
-      <p className="text-center text-gray-600 mb-6">
-        Get a clear explanation in seconds. We help you understand charges, codes, and next steps.
-      </p>
-      <p className="text-sm text-center text-gray-500 mb-8 bg-amber-50 p-4 rounded-lg">
-        🔒 Your bill is processed securely and <strong>deleted immediately</strong> — we do not store any data.
+    <div className="glass-card p-12 mt-12">
+      <h2 className="text-4xl font-bold text-center text-blue-900 mb-8">Upload Your Medical Bill</h2>
+      <p className="text-xl text-center text-gray-700 mb-12 max-w-3xl mx-auto">
+        Get a clear, easy-to-understand explanation of charges, codes, insurance adjustments, and what you actually owe.
       </p>
 
       <form onSubmit={handleSubmit}>
         <div
-          className={`border-4 border-dashed rounded-2xl p-12 text-center transition ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}`}
+          className={`border-4 border-dashed rounded-3xl p-16 text-center transition-all duration-300 ${
+            dragActive ? 'border-blue-500 bg-blue-50 scale-105' : 'border-gray-300'
+          } ${loading ? 'opacity-70' : ''}`}
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={(e) => {
@@ -55,27 +54,36 @@ export default function BillUploader({ onResult, onLoading }) {
             accept="image/*,.pdf"
             onChange={(e) => setFile(e.target.files[0])}
             className="hidden"
-            id="upload"
+            id="bill-upload"
           />
-          <label htmlFor="upload" className="cursor-pointer block">
-            <div className="text-6xl mb-4">📄</div>
-            <p className="text-xl font-medium">
-              {loading ? "Analyzing..." : "Drop your bill here or click to upload"}
+          <label htmlFor="bill-upload" className="cursor-pointer block">
+            <div className="text-8xl mb-8 text-blue-600">📄</div>
+            <p className="text-3xl font-bold text-gray-800 mb-4">
+              {loading ? "Analyzing your bill..." : "Drop your bill here or click to upload"}
             </p>
-            <p className="text-gray-500 mt-2">PDF or image • Max 20MB</p>
-            {file && <p className="mt-4 text-green-600 font-medium">{file.name}</p>}
+            <p className="text-xl text-gray-600">PDF or image • Max 20MB</p>
+            {file && <p className="mt-6 text-2xl text-green-600 font-bold">{file.name}</p>}
+            {loading && (
+              <div className="mt-8 w-24 h-24 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            )}
           </label>
         </div>
 
-        {error && <p className="text-red-600 mt-6 text-center">{error}</p>}
+        {error && (
+          <div className="bg-red-50 border border-red-300 rounded-xl p-6 mt-8 text-red-700 text-center text-lg">
+            {error}
+          </div>
+        )}
 
-        <button
-          type="submit"
-          disabled={!file || loading}
-          className="btn-primary mt-8 w-full py-4 text-xl"
-        >
-          {loading ? "Processing..." : "Explain My Bill"}
-        </button>
+        <div className="text-center mt-12">
+          <button
+            type="submit"
+            disabled={!file || loading}
+            className="btn-primary"
+          >
+            {loading ? "Processing..." : "Explain My Bill"}
+          </button>
+        </div>
       </form>
     </div>
   );
