@@ -12,55 +12,66 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   return (
     <div className="glass-card mt-12 p-6 shadow-2xl">
-      {/* Extracted Bill Text — Professional, Trust-Focused */}
-      <div className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 shadow-xl mb-10">
-        <h3 className="text-2xl font-bold text-green-900 mb-4 flex items-center">
-          <span className="text-4xl mr-4">📄</span> 
-          What Your Bill Says
+      {/* Main Bill Review — Serious, Professional Tone */}
+      <div className="bg-gray-50 border-l-8 border-gray-700 rounded-2xl p-10 shadow-2xl">
+        <h3 className="text-3xl font-bold text-gray-900 mb-6 flex items-center justify-center">
+          <span className="text-5xl mr-4">📋</span>
+          Your Bill Review
         </h3>
-        <p className="text-lg text-green-800 italic mb-4">
-          We carefully reviewed your uploaded bill. Here's the breakdown:
+        <p className="text-xl text-gray-700 leading-relaxed text-center mb-8 max-w-4xl mx-auto">
+          We reviewed your medical bill line by line. Below is a clear, honest breakdown of what it means — including charges, insurance adjustments, and what you actually owe.
         </p>
+
         {mainContent ? (
-          <div className="bg-white p-6 rounded-xl shadow-inner border border-green-200 text-gray-800 whitespace-pre-wrap text-base leading-relaxed">
+          <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap">
             {mainContent}
           </div>
         ) : (
-          <div className="bg-red-50 p-6 rounded-xl border border-red-300">
-            <p className="text-red-700 font-bold text-lg">
-              We couldn't clearly read your bill.
+          <div className="bg-red-50 p-10 rounded-xl border border-red-400 text-center">
+            <p className="text-2xl font-bold text-red-800 mb-4">
+              We could not read your bill clearly
             </p>
-            <p className="text-gray-700 mt-3">
-              This can happen with low-quality scans or screenshots.
+            <p className="text-gray-700 text-lg mb-6">
+              This happens when the image is blurry, low-resolution, or has overlays.
             </p>
-            <p className="text-gray-600 mt-4">
-              Please try:
-              <ul className="mt-2 list-disc list-inside space-y-1">
-                <li>A clearer, well-lit photo</li>
-                <li>A PDF version of the bill</li>
-                <li>Higher resolution image</li>
-                <li>One of the sample bills below</li>
+            <p className="text-gray-600">
+              For accurate results, please upload:
+              <ul className="mt-4 text-left max-w-md mx-auto space-y-2 list-disc list-inside">
+                <li>A sharp, well-lit photo of the bill</li>
+                <li>The original PDF (best option)</li>
+                <li>A high-resolution scan</li>
               </ul>
+            </p>
+            <p className="mt-6 text-sm text-gray-500">
+              Try one of the sample bills below to see how it works.
             </p>
           </div>
         )}
       </div>
 
-      {/* Premium Features (Red Flags, Savings, Appeal Letter) */}
+      {/* Premium Insights — Only shown if available (samples or paid) */}
       {features && <PaidFeatures features={features} />}
 
-      {/* Upgrade Button — Only if not paid and content exists */}
+      {/* Upgrade CTA — Strong, benefit-focused, no hype */}
       {!isPaid && mainContent && (
-        <div className="text-center mt-12">
-          <button
-            onClick={onUpgrade}
-            className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white font-bold py-6 px-16 rounded-3xl text-2xl shadow-2xl transition transform hover:scale-105"
-          >
-            Unlock Red Flags, Savings Estimates & Appeal Letter
-          </button>
-          <p className="mt-4 text-gray-600 text-lg">
-            Get expert insights to save money and fight unfair charges
-          </p>
+        <div className="text-center mt-16">
+          <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-8 rounded-2xl shadow-2xl max-w-4xl mx-auto">
+            <h3 className="text-3xl font-bold mb-4">
+              Don't Pay Unfair Charges
+            </h3>
+            <p className="text-xl mb-8 leading-relaxed max-w-2xl mx-auto">
+              Many bills contain errors, overcharges, or surprise fees. Unlock expert review to spot red flags, estimate savings, and get a ready-to-send appeal letter.
+            </p>
+            <button
+              onClick={onUpgrade}
+              className="bg-white text-red-700 hover:bg-gray-100 font-bold py-5 px-12 rounded-2xl text-2xl shadow-xl transition transform hover:scale-105"
+            >
+              Get My Full Review & Appeal Tools
+            </button>
+            <p className="mt-6 text-lg opacity-90">
+              One-time or unlimited • 30-day money-back guarantee
+            </p>
+          </div>
         </div>
       )}
     </div>
