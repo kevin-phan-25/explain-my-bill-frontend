@@ -17,6 +17,7 @@ function App() {
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
+    // Auto-unlock for dev
     if (isDev) {
       data.isPaid = true;
       setShowUpgrade(false);
@@ -47,7 +48,7 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      let sampleData = {}; // ... keep all sample bill logic as you already defined
+      let sampleData = {}; // Keep your existing sample bill logic
       handleResult(sampleData);
       setLoading(false);
     }, 1500);
@@ -76,17 +77,11 @@ function App() {
         </div>
       </div>
 
-      {/* Upload Area */}
       <main id="main-content" className="container mx-auto px-6 py-12 max-w-4xl">
         <div className="glass-card p-6 shadow-2xl">
           <h2 className="text-2xl font-bold text-center text-blue-900 mb-4">Upload Your Medical Bill</h2>
-          <p className="text-base text-center text-gray-700 mb-2">
-            Get a clear explanation in seconds — secure and private.
-          </p>
-
-          {/* ✅ Micro-copy promoting free TL;DR */}
-          <p className="text-sm text-center text-gray-500 mb-6 italic">
-            Even free users get a quick TL;DR summary of their bill instantly! Upgrade for full breakdown, red flags, and money-saving tips.
+          <p className="text-base text-center text-gray-700 mb-6">
+            Get a clear TL;DR summary immediately — secure and private. Upgrade to see detailed explanations, red flags, and money-saving tips.
           </p>
 
           <BillUploader onResult={handleResult} onLoading={setLoading} />
