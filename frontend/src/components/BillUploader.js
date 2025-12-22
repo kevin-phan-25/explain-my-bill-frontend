@@ -30,9 +30,9 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div
-        className={`border-4 border-dashed rounded-2xl p-10 text-center transition-all ${
+        className={`border-4 border-dashed rounded-xl p-8 text-center transition-all ${
           dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
         } ${loading ? 'opacity-70' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -51,22 +51,22 @@ export default function BillUploader({ onResult, onLoading }) {
           id="bill-upload"
         />
         <label htmlFor="bill-upload" className="cursor-pointer block">
-          <div className="text-6xl mb-4 text-blue-600" aria-hidden="true">📄</div>
-          <p className="text-2xl font-bold text-gray-800 mb-2">
-            {loading ? "Analyzing..." : "Drop your bill or click to upload"}
+          <div className="text-5xl mb-3 text-blue-600" aria-hidden="true">📄</div>
+          <p className="text-xl font-bold text-gray-800 mb-1">
+            {loading ? "Analyzing..." : "Drop bill or click to upload"}
           </p>
-          <p className="text-base text-gray-600">PDF or image • Max 20MB</p>
-          {file && <p className="mt-4 text-xl text-green-600 font-bold">{file.name}</p>}
+          <p className="text-sm text-gray-600">PDF or image • Max 20MB</p>
+          {file && <p className="mt-3 text-lg text-green-600 font-bold">{file.name}</p>}
         </label>
       </div>
 
-      {error && <p className="text-red-600 text-center text-lg">{error}</p>}
+      {error && <p className="text-red-600 text-center text-base">{error}</p>}
 
       <div className="text-center">
         <button
           type="submit"
           disabled={!file || loading}
-          className="btn-primary text-xl py-4 px-10"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-lg shadow-lg transition"
         >
           {loading ? "Processing..." : "Explain My Bill"}
         </button>
