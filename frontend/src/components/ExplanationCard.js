@@ -8,13 +8,11 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   const { explanation, features, isPaid } = result;
 
-  // Real bill: explanation is the full AI response
-  // Sample bill: features for rich premium content
   const mainContent = explanation || "No explanation generated.";
 
   return (
     <div className="glass-card mt-12 p-6 shadow-2xl">
-      {/* Full Explanation — Clean, direct card */}
+      {/* Complete Explanation Card */}
       <div className="bg-gradient-to-br from-indigo-50 to-blue-100 border-l-8 border-indigo-600 rounded-2xl p-8 shadow-2xl">
         <h3 className="text-3xl font-bold text-indigo-900 mb-6 flex items-center justify-center">
           <span className="text-5xl mr-4">🔍</span> 
@@ -25,10 +23,10 @@ export default function ExplanationCard({ result, onUpgrade }) {
         </div>
       </div>
 
-      {/* Rich premium features for sample bills */}
+      {/* Premium features for samples */}
       {features && <PaidFeatures features={features} />}
 
-      {/* Upgrade button for real users */}
+      {/* Upgrade for real users */}
       {!isPaid && (
         <div className="text-center mt-12">
           <button
