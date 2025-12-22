@@ -20,6 +20,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
+      {/* Skip to main content for screen readers */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded">
+        Skip to main content
+      </a>
+
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-16 shadow-2xl">
         <div className="container mx-auto px-6 text-center">
@@ -33,14 +38,14 @@ function App() {
       {/* Privacy Badge */}
       <div className="container mx-auto px-6 -mt-8 relative z-10">
         <div className="privacy-badge text-center max-w-4xl mx-auto shadow-2xl">
-          <span className="text-4xl mr-4">🔒</span>
+          <span className="text-4xl mr-4" aria-hidden="true">🔒</span>
           <strong className="text-xl">Your privacy is guaranteed.</strong> We process your bill securely and delete it immediately. 
           No data is stored. We are not HIPAA-certified because we retain zero health information.
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-16 max-w-5xl">
+      <main id="main-content" className="container mx-auto px-6 py-16 max-w-5xl">
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         ) : (
@@ -52,13 +57,13 @@ function App() {
         {showUpgrade && (
           <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />
         )}
-      </div>
+      </main>
 
-      {/* Testimonials Section */}
+      {/* Testimonials */}
       <Testimonials />
 
       {/* Footer */}
-      <footer className="bg-blue-900 text-white py-12">
+      <footer className="bg-blue-900 text-white py-12 mt-20">
         <div className="container mx-auto px-6 text-center">
           <p className="text-xl mb-4">© 2025 ExplainMyBill</p>
           <p className="text-sm opacity-80">
