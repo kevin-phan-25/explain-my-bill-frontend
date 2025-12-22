@@ -18,11 +18,18 @@ export default function UpgradeModal({ onClose, stripePromise }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="glass-card max-w-lg w-full p-8">
+      <div className="glass-card max-w-lg w-full p-8 relative">
         <h2 className="text-3xl font-bold mb-6 text-center">Unlock Full Power</h2>
         <p className="text-center text-gray-600 mb-8">
           Get red flags, appeal letters, savings estimates, insurance insights, and more.
         </p>
+
+        {/* Free TL;DR Highlight */}
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl mb-6 shadow-md text-center">
+          <p className="text-lg font-semibold text-amber-900">
+            🔹 Your free TL;DR summary gives a quick explanation instantly. Upgrade to see the full details!
+          </p>
+        </div>
 
         <div className="space-y-6">
           <button
