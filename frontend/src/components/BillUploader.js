@@ -32,8 +32,8 @@ export default function BillUploader({ onResult, onLoading }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div
-        className={`border-3 border-dashed rounded-lg p-5 text-center transition-all ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+        className={`border-4 border-dashed rounded-lg p-4 text-center transition-all ${
+          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-400'
         } ${loading ? 'opacity-70' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => setDragActive(false)}
@@ -52,11 +52,11 @@ export default function BillUploader({ onResult, onLoading }) {
         />
         <label htmlFor="bill-upload" className="cursor-pointer block">
           <div className="text-4xl mb-2 text-blue-600" aria-hidden="true">📄</div>
-          <p className="text-lg font-bold text-gray-800 mb-1">
+          <p className="text-base font-bold text-gray-800 mb-1">
             {loading ? "Analyzing..." : "Drop bill or click to upload"}
           </p>
           <p className="text-xs text-gray-600">PDF or image • Max 20MB</p>
-          {file && <p className="mt-2 text-base text-green-600 font-bold">{file.name}</p>}
+          {file && <p className="mt-2 text-sm text-green-600 font-bold">{file.name}</p>}
         </label>
       </div>
 
