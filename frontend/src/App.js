@@ -5,7 +5,7 @@ import ExplanationCard from './components/ExplanationCard';
 import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 
-const stripePromise = loadStripe('pk_live_your_publishable_key'); // Use live key when ready
+const stripePromise = loadStripe('pk_live_YourPublishableKey'); // Replace when live
 
 function App() {
   const [result, setResult] = useState(null);
@@ -18,21 +18,28 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <header className="text-center mb-10">
-          <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-4">ExplainMyBill</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
-            Understand your medical bills in plain English — instantly.
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
+      {/* Header */}
+      <header className="bg-white shadow-lg">
+        <div className="container mx-auto px-6 py-8 text-center">
+          <h1 className="text-5xl font-bold text-blue-900 mb-4">ExplainMyBill</h1>
+          <p className="text-2xl text-gray-700 font-medium">
+            Understand your medical bills in plain English — instantly and securely.
           </p>
-          <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl p-6 max-w-3xl mx-auto">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              🔒 Your privacy is our priority. We process your bill securely and delete it immediately. 
-              No data is stored. We are not HIPAA-certified because we do not retain any health information.
-            </p>
-          </div>
-        </header>
+        </div>
+      </header>
 
+      {/* Privacy Badge */}
+      <div className="container mx-auto px-6 mt-8">
+        <div className="privacy-badge text-center max-w-4xl mx-auto">
+          <span className="text-3xl mr-3">🔒</span>
+          <strong>Your privacy is our #1 priority.</strong> We process your bill securely and delete it immediately. 
+          No data is stored. We are not HIPAA-certified because we retain zero health information.
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-12 max-w-5xl">
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         ) : (
@@ -46,8 +53,12 @@ function App() {
         )}
       </div>
 
-      <footer className="text-center py-8 text-gray-500 text-sm">
-        © 2025 ExplainMyBill • Educational tool only • Not medical or legal advice
+      {/* Footer */}
+      <footer className="bg-blue-900 text-white py-10 mt-20">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-lg mb-4">© 2025 ExplainMyBill — An educational tool to help you understand medical bills</p>
+          <p className="text-sm opacity-80">Not medical or legal advice • For informational purposes only</p>
+        </div>
       </footer>
     </div>
   );
