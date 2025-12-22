@@ -47,3 +47,4 @@ export async function createCheckoutSession(plan) {
     throw new Error(err.message || "Payment failed. Please try again.");
   }
 }
+export default App;
