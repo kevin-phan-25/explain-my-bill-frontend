@@ -6,7 +6,7 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_live_YourKey'); // Replace when live
+const stripePromise = loadStripe('pk_live_YourPublishableKeyHere'); // Replace with your live key when ready
 
 function App() {
   const [result, setResult] = useState(null);
@@ -14,14 +14,27 @@ function App() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleResult = (data) => {
+    // Developer bypass: Always show full paid features during development/testing
+    const isDev = window.location.hostname === 'localhost' || 
+                  window.location.hostname.includes('onrender.com');
+
+    if (isDev) {
+      data.isPaid = true;
+      setShowUpgrade(false);
+    } else if (!data.isPaid) {
+      setShowUpgrade(true);
+    }
+
     setResult(data);
-    if (!data.isPaid) setShowUpgrade(true);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
-      {/* Skip to main content for screen readers */}
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded">
+      {/* Skip to main for accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-6 py-3 rounded-lg z-50"
+      >
         Skip to main content
       </a>
 
