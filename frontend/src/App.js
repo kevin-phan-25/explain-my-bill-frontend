@@ -17,7 +17,6 @@ function App() {
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
-    // Auto-unlock for dev
     if (isDev) {
       data.isPaid = true;
       setShowUpgrade(false);
@@ -33,7 +32,6 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // 7 Realistic Sample Bills
   const sampleBills = [
     { name: "Routine Check-Up (Normal)", image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg", type: 'routine' },
     { name: "Emergency Room (High Charge)", image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg", type: 'er' },
@@ -48,7 +46,33 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      let sampleData = {}; // Keep your existing sample bill logic
+      // ✅ Fully populated sample data for ExplanationCard
+      const sampleData = {
+        isPaid: false,
+        tldr: `Quick summary for ${type} bill: total seems high compared to average.`,
+        cptExplanations: [
+          "CPT 99213: Office visit, moderate complexity.",
+          "CPT 80053: Comprehensive metabolic panel lab test.",
+          "CPT 70450: CT scan of head without contrast."
+        ],
+        redFlags: [
+          "Duplicate billing detected",
+          "Out-of-network charge without prior authorization",
+          "Lab test denied by insurance"
+        ],
+        estimatedSavings: {
+          potentialSavings: "$250–$700",
+          reason: "Overcharges on office visit and lab tests"
+        },
+        appealLetter: `Dear Billing Department,
+
+I am writing to dispute the charges for my recent ${type} bill. I noticed overcharges and denied claims for lab tests. Please review and provide an updated statement.
+
+Thank you,
+[Your Name]`,
+        customAdvice: "Call your insurance to clarify denied items. Review CPT codes and negotiate out-of-network charges. Check fairhealthconsumer.org for cost reference."
+      };
+
       handleResult(sampleData);
       setLoading(false);
     }, 1500);
