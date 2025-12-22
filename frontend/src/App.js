@@ -18,7 +18,6 @@ function App() {
     if (!data) return;
 
     // DEVELOPER FULL ACCESS: You always get the full paid experience
-    // This works on localhost, Render, any domain — perfect for testing
     const isDeveloper = true; // Change to false when launching to real users
 
     if (isDeveloper) {
@@ -55,7 +54,6 @@ function App() {
 
   const sampleResults = {
     routine: {
-      tldr: "Your Free TL;DR: Routine check-up, normal charges.",
       features: {
         cptExplanations: ["99213 - Office visit", "80050 - Health panel lab"],
         redFlags: [],
@@ -65,7 +63,6 @@ function App() {
       }
     },
     er: {
-      tldr: "Your Free TL;DR: ER visit, high charges.",
       features: {
         cptExplanations: ["99285 - ER high complexity", "71020 - Chest X-ray"],
         redFlags: ["ER charges unusually high"],
@@ -75,7 +72,6 @@ function App() {
       }
     },
     denied: {
-      tldr: "Your Free TL;DR: Lab tests denied by insurance.",
       features: {
         cptExplanations: ["80053 - Metabolic panel", "85025 - CBC"],
         redFlags: ["Insurance denied these labs"],
@@ -85,7 +81,6 @@ function App() {
       }
     },
     ambulance: {
-      tldr: "Your Free TL;DR: Surprise ambulance charge.",
       features: {
         cptExplanations: ["A0427 - Ambulance, advanced life support"],
         redFlags: ["Out-of-network rate billed"],
@@ -95,7 +90,6 @@ function App() {
       }
     },
     out_network: {
-      tldr: "Your Free TL;DR: Out-of-network specialist visit.",
       features: {
         cptExplanations: ["99214 - Specialist visit", "93000 - ECG"],
         redFlags: ["Out-of-network billing high"],
@@ -105,7 +99,6 @@ function App() {
       }
     },
     dental: {
-      tldr: "Your Free TL;DR: Dental cleaning & X-Ray.",
       features: {
         cptExplanations: ["D1110 - Cleaning", "D0210 - X-ray"],
         redFlags: [],
@@ -115,7 +108,6 @@ function App() {
       }
     },
     vision: {
-      tldr: "Your Free TL;DR: Eye exam & glasses.",
       features: {
         cptExplanations: ["92014 - Eye exam", "92340 - Lenses"],
         redFlags: [],
@@ -130,7 +122,7 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      handleResult({ ...sampleResults[type], isPaid: true });
+      handleResult({ features: sampleResults[type].features, isPaid: true });
       setLoading(false);
     }, 800);
   };
@@ -159,7 +151,7 @@ function App() {
         <div className="glass-card p-6 shadow-2xl">
           <h2 className="text-2xl font-bold text-center text-blue-900 mb-4">Upload Your Medical Bill</h2>
           <p className="text-base text-center text-gray-700 mb-6">
-            Get your free TL;DR summary immediately — secure and private. Upgrade to see detailed explanations, red flags, and potential savings.
+            Get a detailed explanation immediately — secure and private. Upgrade for additional tools.
           </p>
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         </div>
