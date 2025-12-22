@@ -54,27 +54,87 @@ function App() {
     { name: "Eye Exam & Glasses (Vision)", image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg", type: 'vision' }
   ];
 
+  const sampleResults = {
+    routine: {
+      tldr: "Quick TL;DR: Routine check-up, normal charges, no issues.",
+      features: {
+        cptExplanations: ["99213 - Office visit, 15 minutes", "80050 - General health panel lab tests"],
+        redFlags: [],
+        estimatedSavings: { potentialSavings: "$50–$150", reason: "Routine lab and visit charges often overbilled" },
+        appealLetter: "Dear Provider,\nI reviewed my routine check-up charges. Please confirm these are accurate.",
+        customAdvice: "No major issues. Keep records for future reference."
+      }
+    },
+    er: {
+      tldr: "Quick TL;DR: ER visit, high charges, possible overbilling.",
+      features: {
+        cptExplanations: ["99285 - Emergency visit, high complexity", "71020 - Chest X-ray"],
+        redFlags: ["ER charges unusually high compared to average"],
+        estimatedSavings: { potentialSavings: "$500–$1200", reason: "ER overcharges are common" },
+        appealLetter: "Dear Provider,\nPlease review the emergency visit charges, as they seem high.",
+        customAdvice: "Check if insurance covers ER visit fully, consider appeal if not."
+      }
+    },
+    denied: {
+      tldr: "Quick TL;DR: Lab tests denied by insurance.",
+      features: {
+        cptExplanations: ["80053 - Comprehensive metabolic panel", "85025 - Complete blood count"],
+        redFlags: ["Insurance denied these lab tests"],
+        estimatedSavings: { potentialSavings: "$200–$400", reason: "Denied labs can be appealed" },
+        appealLetter: "Dear Insurance,\nPlease reconsider denial for lab tests 80053 and 85025.",
+        customAdvice: "Submit appeal with provider notes."
+      }
+    },
+    ambulance: {
+      tldr: "Quick TL;DR: Surprise ambulance charge, potentially out-of-network.",
+      features: {
+        cptExplanations: ["A0427 - Ambulance service, advanced life support"],
+        redFlags: ["Ambulance billed at out-of-network rate"],
+        estimatedSavings: { potentialSavings: "$300–$700", reason: "Ambulance charges often overestimated" },
+        appealLetter: "Dear Provider,\nPlease clarify ambulance charges and network coverage.",
+        customAdvice: "Check insurance network rules, negotiate if needed."
+      }
+    },
+    out_network: {
+      tldr: "Quick TL;DR: Out-of-network specialist visit, high balance.",
+      features: {
+        cptExplanations: ["99214 - Specialist visit", "CPT 93000 - ECG"],
+        redFlags: ["Out-of-network billing may be higher than allowed"],
+        estimatedSavings: { potentialSavings: "$400–$900", reason: "Negotiate out-of-network charges" },
+        appealLetter: "Dear Insurance,\nRequesting coverage adjustment for out-of-network charges.",
+        customAdvice: "Ask provider for in-network options or discounts."
+      }
+    },
+    dental: {
+      tldr: "Quick TL;DR: Dental cleaning and X-Ray, typical charges.",
+      features: {
+        cptExplanations: ["D1110 - Adult prophylaxis", "D0210 - Intraoral X-ray"],
+        redFlags: [],
+        estimatedSavings: { potentialSavings: "$50–$100", reason: "Dental offices sometimes overcharge labs/X-rays" },
+        appealLetter: "Dear Provider,\nPlease review the dental charges.",
+        customAdvice: "Confirm insurance coverage for dental."
+      }
+    },
+    vision: {
+      tldr: "Quick TL;DR: Eye exam and glasses, standard charges.",
+      features: {
+        cptExplanations: ["92014 - Comprehensive eye exam", "92340 - Glasses lenses"],
+        redFlags: [],
+        estimatedSavings: { potentialSavings: "$50–$200", reason: "Vision costs vary widely" },
+        appealLetter: "Dear Provider,\nReview vision exam and lenses charges.",
+        customAdvice: "Check coverage and compare prices online."
+      }
+    }
+  };
+
   const loadSampleFromImage = (type, e) => {
     e.preventDefault();
     setLoading(true);
 
     setTimeout(() => {
-      // Sample bill data logic
-      let sampleData = {
-        tldr: `Quick TL;DR for ${type} bill`,
-        isPaid: true,
-        features: {
-          cptExplanations: [`Example CPT explanation for ${type}`],
-          redFlags: [`Example red flag for ${type}`],
-          estimatedSavings: { potentialSavings: "$300–$600", reason: "Common overcharges" },
-          appealLetter: `Dear Provider,\nPlease review the charges for ${type}.`,
-          customAdvice: `Check all CPT codes for ${type} and call insurance if needed.`
-        }
-      };
-
-      handleResult(sampleData);
+      handleResult({ ...sampleResults[type], isPaid: true });
       setLoading(false);
-    }, 1000);
+    }, 800);
   };
 
   return (
