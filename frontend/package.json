@@ -17,6 +17,7 @@
   "devDependencies": {
     "tailwindcss": "^3.4.0",
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32"
+    "postcss": "^8.4.32",
+    "framer-motion": "^10.12.16"
   }
 }
