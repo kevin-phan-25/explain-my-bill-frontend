@@ -23,9 +23,47 @@ export default function ExplanationCard({ result, onUpgrade }) {
         </p>
 
         {mainContent ? (
-          <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap">
-            {mainContent}
-          </div>
+          <>
+            {/* What We Found — Simple Summary for Trust */}
+            <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 mb-10 shadow-lg">
+              <h4 className="text-2xl font-bold text-blue-900 mb-4 flex items-center">
+                <span className="text-4xl mr-4">✅</span> What We Found
+              </h4>
+              <p className="text-lg text-blue-800 leading-relaxed">
+                Your bill includes medical services, insurance processing, and your final responsibility. 
+                We broke it down into plain English so you know exactly what you're being asked to pay — and why.
+              </p>
+            </div>
+
+            {/* Full Explanation */}
+            <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap">
+              {mainContent}
+            </div>
+
+            {/* Next Steps — Actionable Advice */}
+            <div className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 mt-10 shadow-lg">
+              <h4 className="text-2xl font-bold text-green-900 mb-4 flex items-center">
+                <span className="text-4xl mr-4">🎯</span> Your Next Steps
+              </h4>
+              <ul className="text-lg text-green-800 space-y-3 list-disc list-inside">
+                <li>Request an <strong>itemized bill</strong> from your provider if you don't have one</li>
+                <li>Compare charges at <a href="https://www.fairhealthconsumer.org" target="_blank" rel="noopener" className="underline font-bold">FairHealthConsumer.org</a> — it's free and shows average costs in your area</li>
+                <li>Call your insurance with questions using the claim number on your bill</li>
+                <li>If something looks wrong, you have the right to appeal — many people successfully reduce or eliminate charges</li>
+              </ul>
+            </div>
+
+            {/* Your Rights — Empowerment */}
+            <div className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 mt-10 shadow-lg text-center">
+              <h4 className="text-2xl font-bold text-purple-900 mb-4">
+                You Have Rights
+              </h4>
+              <p className="text-lg text-purple-800 max-w-3xl mx-auto">
+                Medical billing errors are common. You do <strong>not</strong> have to accept surprise charges or overbilling. 
+                Many patients successfully appeal and save hundreds or thousands. We're here to help you understand and fight back if needed.
+              </p>
+            </div>
+          </>
         ) : (
           <div className="bg-red-50 p-10 rounded-xl border border-red-400 text-center">
             <p className="text-2xl font-bold text-red-800 mb-4">
