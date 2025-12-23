@@ -7,12 +7,16 @@ export async function explainBill(formData) {
     headers["X-Dev-Bypass"] = "true"; // Developer bypass for full access
   }
 
+  console.log("explainBill: Starting fetch to worker"); // Debugging log
+
   try {
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: headers,
       body: formData,
     });
+
+    console.log("explainBill: Fetch response status:", res.status); // Debugging log
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
@@ -21,7 +25,7 @@ export async function explainBill(formData) {
 
     return res.json();
   } catch (err) {
-    console.error("Error calling Worker:", err);
+    console.error("explainBill: Error:", err); // Debugging log
     throw new Error(
       "Could not connect to backend. Please check your internet connection or try again later."
     );
@@ -29,12 +33,16 @@ export async function explainBill(formData) {
 }
 
 export async function createCheckoutSession(plan) {
+  console.log("createCheckoutSession: Starting for plan:", plan); // Debugging log
+
   try {
     const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan }),
     });
+
+    console.log("createCheckoutSession: Response status:", res.status); // Debugging log
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
@@ -43,7 +51,7 @@ export async function createCheckoutSession(plan) {
 
     return res.json();
   } catch (err) {
-    console.error("Stripe checkout error:", err);
+    console.error("createCheckoutSession: Error:", err); // Debugging log
     throw new Error("Could not initiate payment. Try again later.");
   }
 }
