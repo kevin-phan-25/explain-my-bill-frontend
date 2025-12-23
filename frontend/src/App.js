@@ -122,7 +122,12 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      handleResult({ features: sampleResults[type].features, isPaid: true });
+      // Directly show full premium features — no OCR/upload
+      handleResult({ 
+        explanation: "This is an example of the full, detailed explanation you get when you upgrade. It includes charges, codes, insurance adjustments, patient responsibility, red flags, estimated savings, and a ready-to-send appeal letter.",
+        features: sampleResults[type].features, 
+        isPaid: true 
+      });
       setLoading(false);
     }, 800);
   };
@@ -175,13 +180,16 @@ function App() {
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
           Or Try a Sample Bill Instantly
         </h2>
+        <p className="text-center text-gray-700 mb-8 max-w-3xl mx-auto text-lg">
+          Click any sample to see the <strong>full premium explanation</strong> you'd get when you upgrade — including red flags, estimated savings, and appeal letter.
+        </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {sampleBills.map((bill, i) => (
             <div key={i} className="text-center">
               <button
                 onClick={(e) => loadSampleFromImage(bill.type, e)}
                 className="block w-full transform hover:scale-105 transition duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300"
-                aria-label={`Analyze sample ${bill.name}`}
+                aria-label={`View premium explanation for sample ${bill.name}`}
               >
                 <img
                   src={bill.image}
@@ -191,7 +199,7 @@ function App() {
                 <p className="mt-6 text-2xl font-bold text-blue-900">
                   {bill.name}
                 </p>
-                <p className="text-lg text-gray-600 mt-2">Click to get explanation</p>
+                <p className="text-lg text-gray-600 mt-2">Click for full premium review</p>
               </button>
             </div>
           ))}
