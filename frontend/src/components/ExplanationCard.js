@@ -1,11 +1,22 @@
-// src/components/ExplanationCard.js
-import React, { useState } from 'react';
-import PaidFeatures from './PaidFeatures';
+import React, { useState } from "react";
+import PaidFeatures from "./PaidFeatures";
+import jsPDF from "jspdf";
 
 export default function ExplanationCard({ result, onUpgrade }) {
   const [activePage, setActivePage] = useState(0);
 
   if (!result) return null;
+
+  const handleDownload = () => {
+    const doc = new jsPDF();
+    result.pages.forEach((p, i) => {
+      doc.setFontSize(12);
+      doc.text(`Page ${p.page}`, 10, 10);
+      doc.text(p.explanation || "No explanation", 10, 20);
+      if (i < result.pages.length - 1) doc.addPage();
+    });
+    doc.save("bill_explanation.pdf");
+  };
 
   return (
     <div className="glass-card p-8">
@@ -14,7 +25,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       {!result.isPaid && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
           <p className="text-lg">
-            This is a free summary. <strong>Upgrade</strong> for the full detailed explanation, red flags, appeal letter, and more.
+            This is a free summary. <strong>Upgrade</strong> for full explanation, red flags, appeal letters, and savings estimates.
           </p>
           <button onClick={onUpgrade} className="btn-primary mt-4">
             Unlock Full Features
@@ -28,7 +39,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
             key={i}
             onClick={() => setActivePage(i)}
             className={`px-6 py-3 rounded-xl font-medium transition ${
-              i === activePage ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700'
+              i === activePage ? "bg-primary text-white" : "bg-gray-200 dark:bg-gray-700"
             }`}
           >
             Page {page.page}
@@ -43,6 +54,15 @@ export default function ExplanationCard({ result, onUpgrade }) {
       </div>
 
       {result.isPaid && result.paidFeatures && <PaidFeatures features={result.paidFeatures} />}
+
+      <div className="text-center mt-6">
+        <button
+          onClick={handleDownload}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition transform hover:scale-105"
+        >
+          Download PDF
+        </button>
+      </div>
     </div>
   );
 }
