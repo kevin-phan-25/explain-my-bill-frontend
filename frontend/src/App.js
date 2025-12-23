@@ -6,9 +6,9 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // test key
+const stripePromise = loadStripe('pk_test_51YourTestKeyHere');
 
-function App() {
+export default function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -18,166 +18,128 @@ function App() {
     window.location.hostname.includes('onrender.com');
 
   const handleResult = (data) => {
-    // Force paid access for dev + samples
-    if (isDev || data?.isPaid) {
-      data.isPaid = true;
-      setShowUpgrade(false);
-    } else {
-      setShowUpgrade(true);
-    }
-
+    data.isPaid = isDev || data.isPaid;
+    setShowUpgrade(!data.isPaid);
     setResult(data);
   };
 
-  const resetToUpload = () => {
+  const reset = () => {
     setResult(null);
     setShowUpgrade(false);
   };
 
-  // ===============================
-  // FULL SAMPLE DATA (NO OCR FAIL)
-  // ===============================
-  const sampleBills = [
+  // ===== SAMPLE BILLS (NO OCR FAILS) =====
+  const samples = [
     {
-      name: 'Routine Check-Up (Normal)',
+      name: 'Routine Check-Up',
       type: 'routine',
-      image: 'https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg',
+      img: 'https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg',
       data: {
         isPaid: true,
-        pages: [
-          {
-            structured: {
-              summary: 'Routine preventive visit.',
-              keyAmounts: {
-                totalCharges: '$195.00',
-                insurancePaid: '$117.00',
-                patientResponsibility: '$39.00',
-              },
-              services: ['Office Visit (99214)'],
-              redFlags: [],
-              explanation:
-                'This was a standard preventive visit. Insurance covered most costs. The remaining $39 is a normal copay.',
-              nextSteps: ['Pay $39', 'No further action needed'],
+        pages: [{
+          structured: {
+            summary: 'Routine preventive visit.',
+            keyAmounts: {
+              totalCharges: '$195',
+              insurancePaid: '$117',
+              patientResponsibility: '$39',
             },
+            services: ['Office Visit (99214)'],
+            redFlags: [],
+            explanation: 'Standard check-up. Insurance covered most of the bill.',
+            nextSteps: ['Pay $39'],
           },
-        ],
+        }],
       },
     },
     {
-      name: 'Emergency Room (High Charge)',
+      name: 'Emergency Room',
       type: 'er',
-      image:
-        'https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg',
+      img: 'https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg',
       data: {
         isPaid: true,
-        pages: [
-          {
-            structured: {
-              summary: 'High-cost ER visit with inflated facility fees.',
-              keyAmounts: {
-                totalCharges: '$4,200.00',
-                insurancePaid: '$1,800.00',
-                patientResponsibility: '$600.00',
-              },
-              services: ['ER Visit (99285)', 'Labs', 'X-Ray'],
-              redFlags: [
-                'Level 5 ER code',
-                'Facility fees above average',
-              ],
-              explanation:
-                'ER visits are frequently overcoded. This bill is commonly negotiable.',
-              nextSteps: [
-                'Request itemized bill',
-                'Negotiate with hospital',
-                'Check FairHealthConsumer.org',
-              ],
+        pages: [{
+          structured: {
+            summary: 'High-cost ER visit.',
+            keyAmounts: {
+              totalCharges: '$4,200',
+              insurancePaid: '$1,800',
+              patientResponsibility: '$600',
             },
+            services: ['ER Visit (99285)', 'Labs'],
+            redFlags: ['Possible overcoding'],
+            explanation: 'ER visits are commonly negotiable.',
+            nextSteps: ['Request itemized bill', 'Negotiate'],
           },
-        ],
+        }],
       },
     },
     {
-      name: 'Denied Lab Tests',
+      name: 'Denied Labs',
       type: 'denied',
-      image:
-        'https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg',
+      img: 'https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg',
       data: {
         isPaid: true,
-        pages: [
-          {
-            structured: {
-              summary: 'Standard labs denied as not medically necessary.',
-              keyAmounts: {
-                totalCharges: '$265.00',
-                patientResponsibility: '$265.00',
-              },
-              services: ['80053', '85025'],
-              redFlags: ['Full denial'],
-              explanation:
-                'Lab denials are commonly overturned with a doctor letter.',
-              nextSteps: [
-                'Request medical necessity letter',
-                'Submit insurance appeal',
-              ],
+        pages: [{
+          structured: {
+            summary: 'Lab tests denied.',
+            keyAmounts: {
+              totalCharges: '$265',
+              patientResponsibility: '$265',
             },
+            services: ['80053', '85025'],
+            redFlags: ['Insurance denial'],
+            explanation: 'Denials are often overturned on appeal.',
+            nextSteps: ['Get doctor letter', 'Appeal'],
           },
-        ],
-      },
-    },
-    {
-      name: 'Surprise Ambulance Bill',
-      type: 'ambulance',
-      image:
-        'https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png',
-      data: {
-        isPaid: true,
-        pages: [
-          {
-            structured: {
-              summary: 'Out-of-network ambulance transport.',
-              keyAmounts: {
-                totalCharges: '$1,800.00',
-                insurancePaid: '$400.00',
-                patientResponsibility: '$1,400.00',
-              },
-              services: ['A0429', 'A0425'],
-              redFlags: ['Surprise billing'],
-              explanation:
-                'Ambulance services often trigger surprise bills. Protections may apply.',
-              nextSteps: [
-                'Check No Surprises Act',
-                'Negotiate directly',
-              ],
-            },
-          },
-        ],
+        }],
       },
     },
   ];
 
-  const loadSampleFromImage = (type) => {
+  const loadSample = (type) => {
     setLoading(true);
-    const sample = sampleBills.find((b) => b.type === type);
-
-    if (!sample) return;
-
+    const sample = samples.find(s => s.type === type);
     setTimeout(() => {
       handleResult(sample.data);
       setLoading(false);
-    }, 700);
+    }, 600);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
-      <header className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-16 shadow-2xl">
-        <div className="container mx-auto px-6 text-center">
-          <h1 className="text-5xl font-bold mb-6">ExplainMyBill</h1>
-          <p className="text-2xl font-light max-w-3xl mx-auto">
-            Understand your medical bills in plain English — instantly.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50">
+      {/* HEADER */}
+      <header className="bg-blue-800 text-white py-14 text-center shadow-xl">
+        <h1 className="text-4xl font-bold">ExplainMyBill</h1>
+        <p className="text-xl mt-4">
+          Medical bills explained in plain English.
+        </p>
       </header>
 
+      {/* TRUST / PRIVACY SECTION */}
+      <div className="container mx-auto px-6 -mt-8 relative z-10">
+        <div className="bg-white border-l-8 border-green-600 rounded-2xl p-6 shadow-2xl max-w-4xl mx-auto">
+          <div className="flex items-start gap-4">
+            <span className="text-4xl">🔒</span>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Your Privacy Comes First
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                We <strong>do not store</strong> your medical bills, images, or personal data.
+                Your file is processed securely and discarded immediately.
+              </p>
+              <p className="text-gray-700 leading-relaxed mt-2">
+                We are <strong>not HIPAA-certified</strong> because we retain
+                <strong> zero health information</strong>. Nothing is saved, sold,
+                shared, or used for training.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN */}
       <main className="container mx-auto px-6 py-12 max-w-4xl">
         <div className="glass-card p-6 shadow-2xl">
           <BillUploader onResult={handleResult} onLoading={setLoading} />
@@ -187,8 +149,8 @@ function App() {
           <>
             <div className="text-center my-8">
               <button
-                onClick={resetToUpload}
-                className="bg-gray-800 text-white py-3 px-8 rounded-xl"
+                onClick={reset}
+                className="bg-gray-800 text-white px-6 py-3 rounded-xl"
               >
                 ← Analyze Another Bill
               </button>
@@ -210,23 +172,23 @@ function App() {
       </main>
 
       {/* SAMPLE BILLS */}
-      <section className="container mx-auto px-6 pb-16">
-        <h2 className="text-3xl font-bold text-center mb-10">
+      <section className="container mx-auto px-6 pb-16 max-w-5xl">
+        <h2 className="text-2xl font-bold text-center mb-8">
           Try a Sample Bill
         </h2>
-        <div className="grid md:grid-cols-2 gap-8">
-          {sampleBills.map((bill, i) => (
+        <div className="grid md:grid-cols-3 gap-6">
+          {samples.map((s, i) => (
             <button
               key={i}
-              onClick={() => loadSampleFromImage(bill.type)}
-              className="text-center hover:scale-105 transition"
+              onClick={() => loadSample(s.type)}
+              className="hover:scale-105 transition text-center"
             >
               <img
-                src={bill.image}
-                alt={bill.name}
-                className="rounded-xl shadow-xl bg-white p-4"
+                src={s.img}
+                alt={s.name}
+                className="rounded-xl shadow-lg bg-white p-3"
               />
-              <p className="mt-4 font-bold text-lg">{bill.name}</p>
+              <p className="mt-3 font-semibold">{s.name}</p>
             </button>
           ))}
         </div>
@@ -234,11 +196,13 @@ function App() {
 
       <Testimonials />
 
-      <footer className="bg-blue-900 text-white py-10 text-center">
-        © 2025 ExplainMyBill • Educational only
+      {/* FOOTER */}
+      <footer className="bg-blue-900 text-white py-8 text-center">
+        <p className="font-semibold">30-Day Money-Back Guarantee</p>
+        <p className="text-sm mt-2 opacity-80">
+          © 2025 ExplainMyBill • Educational tool • Not medical or legal advice
+        </p>
       </footer>
     </div>
   );
 }
-
-export default App;
