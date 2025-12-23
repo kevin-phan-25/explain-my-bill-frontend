@@ -1,13 +1,12 @@
-// src/components/ExplanationCard.js
 import React from "react";
 import PaidFeatures from "./PaidFeatures";
 import { saveAs } from "file-saver";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import jsPDF from "jspdf";
 
 // Regex patterns for highlighting
 const patterns = {
-  amount: /\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g, // $75.00, $1,200.50
-  percentage: /\d{1,3}%/g,                     // 20%, 100%
+  amount: /\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g,
+  percentage: /\d{1,3}%/g,
   keywords: /\b(deductible|copay|insurance|covered|balance|owed|EOB|claim|denied)\b/gi,
 };
 
@@ -17,73 +16,20 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
   const { explanation, features, isPaid } = result;
   const mainContent = explanation?.trim() || null;
 
-  // ✅ Download explanation as styled PDF using pdf-lib
-  const handleDownloadPDF = async () => {
-    try {
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage([600, 800]);
-      const { width, height } = page.getSize();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-      let y = height - 50;
-
-      // Title
-      page.drawText("📋 Your Bill Review", {
-        x: 50,
-        y,
-        size: 24,
-        font: fontBold,
-        color: rgb(0.1, 0.1, 0.5),
-      });
-      y -= 40;
-
-      // Main content lines
-      mainContent.split("\n").forEach((line) => {
-        let text = line;
-
-        // Highlight amounts
-        text = text.replace(patterns.amount, (m) => `[AMOUNT:${m}]`);
-        text = text.replace(patterns.percentage, (m) => `[PERCENT:${m}]`);
-        text = text.replace(patterns.keywords, (m) => `[KEYWORD:${m}]`);
-
-        const segments = text.split(/(\[AMOUNT:.*?\]|\[PERCENT:.*?\]|\[KEYWORD:.*?\])/g);
-
-        let x = 50;
-        segments.forEach((seg) => {
-          if (seg.startsWith("[AMOUNT:")) {
-            const val = seg.replace("[AMOUNT:", "").replace("]", "");
-            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0.7, 0, 0) });
-          } else if (seg.startsWith("[PERCENT:")) {
-            const val = seg.replace("[PERCENT:", "").replace("]", "");
-            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0, 0.3, 0.7) });
-          } else if (seg.startsWith("[KEYWORD:")) {
-            const val = seg.replace("[KEYWORD:", "").replace("]", "");
-            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0.6, 0.4, 0), });
-          } else {
-            page.drawText(seg, { x, y, font, size: 12, color: rgb(0, 0, 0) });
-          }
-          x += font.widthOfTextAtSize(seg, 12);
-        });
-        y -= 18;
-        if (y < 50) {
-          // add new page if space runs out
-          y = height - 50;
-          page = pdfDoc.addPage([600, 800]);
-        }
-      });
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      saveAs(blob, "Medical_Bill_Explanation.pdf");
-    } catch (err) {
-      alert("Failed to generate PDF: " + err.message);
-    }
+  // ✅ Download explanation as PDF
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const lines = doc.splitTextToSize(mainContent, 180); // max width 180
+    lines.forEach((line, i) => {
+      doc.text(line, 15, 15 + i * 10); // left margin 15, vertical spacing 10
+    });
+    doc.save("Medical_Bill_Explanation.pdf");
   };
 
-  // Highlight important text for UI
+  // Highlight important text
   const highlightText = (text) => {
     if (!text) return null;
+
     const lines = text.split("\n").map((line, idx) => {
       let formatted = line
         .replace(patterns.amount, (m) => `<span class="text-red-600 font-bold">${m}</span>`)
@@ -91,6 +37,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
         .replace(patterns.keywords, (m) => `<span class="bg-yellow-200 px-1 rounded">${m}</span>`);
       return <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: formatted }} />;
     });
+
     return lines;
   };
 
