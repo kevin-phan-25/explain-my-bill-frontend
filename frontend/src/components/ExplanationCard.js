@@ -47,23 +47,6 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
           <span className="text-5xl mr-4">📋</span> Your Bill Review
         </h3>
 
-        {!mainContent && (
-          <div className="bg-red-50 p-10 rounded-xl border border-red-400 text-center">
-            <p className="text-2xl font-bold text-red-800 mb-4">
-              We could not read your bill clearly
-            </p>
-            <p className="text-gray-700 text-lg mb-6">
-              This happens when the image is blurry, low-resolution, or has overlays.
-            </p>
-            <button
-              onClick={onUseSample}
-              className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow hover:bg-blue-700 transition"
-            >
-              Try Sample Bill
-            </button>
-          </div>
-        )}
-
         {mainContent && (
           <>
             {/* What We Found */}
