@@ -39,7 +39,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // === ULTRA-MODERN, PROFESSIONAL, FUTURISTIC PDF EXPORT ===
+  // ULTRA-MODERN PDF EXPORT (unchanged from previous futuristic version)
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -47,32 +47,27 @@ export default function ExplanationCard({ result, onUpgrade }) {
     const margin = 20;
     let y = 25;
 
-    // Header – Deep futuristic gradient background
     doc.setFillColor(20, 15, 60);
     doc.rect(0, 0, pageWidth, 55, "F");
 
-    // Title
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
     doc.text("Medical Bill Intelligence Report", margin, y);
     y += 12;
 
-    // Subtitle
     doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 220, 255);
     doc.text("Dual AI-Powered • Confidence Verified • Secure Analysis", margin, y);
     y += 10;
 
-    // Date & Confidence Legend
     doc.setFontSize(11);
     doc.setTextColor(180, 220, 255);
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
     doc.text("Confidence: 🟢 High (80–100%)   🟡 Medium (50–79%)   🔴 Low (<50%)", margin, y + 8);
     y += 25;
 
-    // Key Financial Summary – Modern Card
     if (mainData?.keyAmounts || mainData?.confidences) {
       doc.setFillColor(15, 10, 50);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 75, 10, 10, "F");
@@ -117,7 +112,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
-    // Services Provided
     if (mainData?.services?.length > 0) {
       doc.setFillColor(20, 15, 70);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 15 + mainData.services.length * 9, 8, 8, "F");
@@ -143,7 +137,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
-    // Executive Summary
     if (mainData?.summary) {
       doc.setFillColor(25, 20, 80);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 50, 8, 8, "F");
@@ -162,7 +155,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += summaryLines.length * 8 + 15;
     }
 
-    // Detailed Explanation
     doc.setFillColor(10, 8, 50);
     doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 90, 8, 8, "F");
     y += 5;
@@ -180,7 +172,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
     doc.text(explanationLines, margin + 5, y);
     y += explanationLines.length * 7 + 20;
 
-    // Red Flags (Paid Only)
     if (isPaid && mainData?.redFlags?.length > 0) {
       doc.setFillColor(90, 15, 40);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainData.redFlags.length * 10, 8, 8, "F");
@@ -205,7 +196,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
-    // Recommended Next Steps
     doc.setFillColor(10, 60, 40);
     doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 70, 8, 8, "F");
     y += 5;
@@ -216,7 +206,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     doc.text("🎯 Recommended Actions", margin, y);
     y += 14;
 
-    const steps = hasStructured ? mainData.nextSteps : [
+    const steps = mainData?.nextSteps || [
       "Request a detailed itemized bill from your provider",
       "Compare charges on FairHealthConsumer.org",
       "Call your insurance using the claim number",
@@ -235,7 +225,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     });
 
-    // Futuristic Footer
     doc.setFillColor(15, 10, 60);
     doc.rect(0, pageHeight - 35, pageWidth, 35, "F");
 
@@ -249,7 +238,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
     doc.save("Medical_Bill_Intelligence_Report.pdf");
   };
 
-  // Confidence Badge Component
   const ConfidenceBadge = ({ score }) => {
     if (score === undefined || score === null) return null;
     const color = score >= 80 ? "text-green-400" : score >= 50 ? "text-yellow-400" : "text-red-400";
@@ -259,7 +247,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 py-8 px-4 sm:py-12 sm:px-6 lg:px-12">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight flex items-center justify-center gap-3">
             <span className="text-4xl sm:text-5xl">🔍</span>
@@ -268,7 +255,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Dual AI Powered</p>
         </div>
 
-        {/* Key Metrics – 40% smaller */}
+        {/* Key Metrics – Numbers now fit perfectly */}
         {mainData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 sm:mb-10">
             {[
@@ -288,8 +275,8 @@ export default function ExplanationCard({ result, onUpgrade }) {
                     <ConfidenceBadge score={item.conf} />
                   </div>
                 </div>
-                <div className="relative px-3 sm:px-4 py-4 sm:py-6 text-center">
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-all">
+                <div className="relative px-3 sm:px-5 py-5 sm:py-7 text-center">
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-words hyphenate">
                     {item.value}
                   </p>
                 </div>
@@ -298,7 +285,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </div>
         )}
 
-        {/* Accordion Sections */}
         <div className="space-y-4 sm:space-y-5">
           {/* Summary */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
@@ -365,7 +351,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
             </div>
           )}
 
-          {/* Next Steps */}
+          {/* Recommended Next Steps – Now uses real backend data */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("nextsteps")}
@@ -379,24 +365,33 @@ export default function ExplanationCard({ result, onUpgrade }) {
             {openSections.includes("nextsteps") && (
               <div className="px-5 sm:px-7 pb-5 sm:pb-7">
                 <ol className="space-y-3 text-white/90 text-sm sm:text-base">
-                  {(hasStructured ? mainData.nextSteps : [
-                    "Request a detailed itemized bill from your provider",
-                    "Compare charges on FairHealthConsumer.org",
-                    "Call your insurance using the claim number",
-                    "Appeal anything that looks wrong — many succeed!"
-                  ]).map((step, i) => (
+                  {(mainData?.nextSteps && mainData.nextSteps.length > 0
+                    ? mainData.nextSteps
+                    : [
+                        "Request a detailed itemized bill from your provider",
+                        "Compare charges on FairHealthConsumer.org",
+                        "Call your insurance using the claim number",
+                        "Appeal anything that looks wrong — many succeed!"
+                      ]
+                  ).map((step, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="text-green-400 text-lg font-bold min-w-[1.5rem]">{i + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
                 </ol>
+
+                {/* Upgrade prompt for free users if no custom steps */}
+                {!isPaid && (!mainData?.nextSteps || mainData.nextSteps.length === 0) && (
+                  <p className="mt-6 text-center text-white/70 text-sm">
+                    Upgrade for personalized, bill-specific next steps and appeal tools.
+                  </p>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Download Button */}
         <div className="text-center my-8 sm:my-12">
           <button
             onClick={handleDownloadPDF}
@@ -406,7 +401,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </button>
         </div>
 
-        {/* Upgrade CTA */}
         {!isPaid && (
           <div className="mt-10 sm:mt-14 text-center">
             <div className="rounded-2xl sm:rounded-3xl backdrop-blur-xl bg-gradient-to-r from-red-600/30 to-orange-600/30 border border-red-500/40 p-6 sm:p-10 max-w-4xl mx-auto">
@@ -431,6 +425,12 @@ export default function ExplanationCard({ result, onUpgrade }) {
       <style jsx>{`
         .glow {
           text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+        }
+        .break-words {
+          word-break: break-all;
+        }
+        .hyphenate {
+          hyphens: auto;
         }
       `}</style>
     </div>
