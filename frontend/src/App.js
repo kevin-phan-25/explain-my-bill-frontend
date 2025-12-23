@@ -32,16 +32,16 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // Sample bill images (kept)
+  // Sample bill images (updated with unique images)
   const sampleBills = [
     {
       name: "Routine Check-Up (Normal)",
-      image: "https://preview.redd.it/price-of-a-5-minute-ambulance-ride-to-the-hospital-v0-oxv3y6pn755e1.jpeg?width=640&crop=smart&auto=webp&s=8b20faddcc24a66b12e2972dae849e4ac4400bb4",
+      image: "https://www.devry.edu/blog/examples/_jcr_content/root/container/structured_container_161844580/content-col-1/container/image_copy_copy_copy.coreimg.jpeg/1753935319005/pic-medical-coding-example-1.jpeg",
       type: 'routine'
     },
     {
       name: "Emergency Room (High Charge)",
-      image: "https://preview.redd.it/price-of-a-5-minute-ambulance-ride-to-the-hospital-v0-oxv3y6pn755e1.jpeg?width=640&crop=smart&auto=webp&s=8b20faddcc24a66b12e2972dae849e4ac4400bb4",
+      image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg",
       type: 'er'
     },
     {
@@ -51,12 +51,12 @@ function App() {
     },
     {
       name: "Surprise Ambulance Bill",
-      image: "https://i.redd.it/oxv3y6pn755e1.jpeg",
+      image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png",
       type: 'ambulance'
     },
     {
       name: "Out-of-Network Specialist",
-      image: "https://bellmedex.com/wp-content/uploads/2023/08/out-of-network-medical-billing.jpg",
+      image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true? u=1javjt",
       type: 'out_network'
     },
     {
