@@ -3,15 +3,16 @@ const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
 export async function explainBill(formData) {
   const headers = {};
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname.includes("onrender.com")
-  ) {
-    headers["X-Dev-Bypass"] = "true"; // developer free bypass
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('onrender.com')) {
+    headers["X-Dev-Bypass"] = "true"; // Developer bypass for full access
   }
 
   try {
-    const res = await fetch(WORKER_URL, { method: "POST", headers, body: formData });
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: headers,
+      body: formData,
+    });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
