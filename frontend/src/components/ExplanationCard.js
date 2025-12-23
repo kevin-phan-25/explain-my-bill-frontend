@@ -1,148 +1,137 @@
 // src/components/ExplanationCard.js
-import React, { useState } from "react";
-import { jsPDF } from "jspdf";
+import React from "react";
 import PaidFeatures from "./PaidFeatures";
+import { saveAs } from "file-saver";
 
-export default function ExplanationCard({ result, onUpgrade, samples }) {
-  const [activePage, setActivePage] = useState(0);
+// Regex patterns for highlighting
+const patterns = {
+  amount: /\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g, // $75.00, $1,200.50
+  percentage: /\d{1,3}%/g,                     // 20%, 100%
+  keywords: /\b(deductible|copay|insurance|covered|balance|owed|EOB|claim|denied)\b/gi,
+};
+
+export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
   if (!result) return null;
 
-  const { pages, isPaid, paidFeatures } = result;
+  const { explanation, features, isPaid } = result;
+  const mainContent = explanation?.trim() || null;
 
+  // ✅ Download explanation as PDF
   const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    pages.forEach((p, i) => {
-      doc.setFontSize(16);
-      doc.text(`Page ${p.page}`, 10, 20);
-      doc.setFontSize(12);
-      const splitText = doc.splitTextToSize(p.explanation, 180);
-      doc.text(splitText, 10, 30);
-      if (i < pages.length - 1) doc.addPage();
-    });
-    doc.save("BillExplanation.pdf");
+    const blob = new Blob([mainContent], { type: "application/pdf" });
+    saveAs(blob, "Medical_Bill_Explanation.pdf");
   };
 
-  const highlightAmounts = (text) => {
-    return text
-      .replace(/\$\d+(\.\d{2})?/g, (match) => `<span class="text-red-600 font-bold">${match}</span>`)
-      .replace(/savings|covered|insurance/gi, (match) => `<span class="text-green-600 font-semibold">${match}</span>`);
+  // Highlight important text
+  const highlightText = (text) => {
+    if (!text) return null;
+
+    // Split text by lines to preserve whitespace
+    const lines = text.split("\n").map((line, idx) => {
+      let formatted = line
+        .replace(patterns.amount, (m) => `<span class="text-red-600 font-bold">${m}</span>`)
+        .replace(patterns.percentage, (m) => `<span class="text-blue-600 font-semibold">${m}</span>`)
+        .replace(patterns.keywords, (m) => `<span class="bg-yellow-200 px-1 rounded">${m}</span>`);
+      return <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: formatted }} />;
+    });
+
+    return lines;
   };
 
   return (
-    <div className="mt-12 p-6">
-      {/* Summary Card */}
-      <div className="bg-white p-8 rounded-2xl shadow-2xl border border-gray-200 text-center mb-8">
-        <h2 className="text-3xl font-bold mb-4 flex justify-center items-center">
-          <span className="text-5xl mr-3">📋</span>Your Bill Review
-        </h2>
-        <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-6">
-          Quick overview of charges, insurance coverage, your responsibility, and potential savings.
-        </p>
+    <div className="glass-card mt-12 p-6 shadow-2xl">
+      <div className="bg-gray-50 border-l-8 border-gray-700 rounded-2xl p-10 shadow-2xl">
+        <h3 className="text-3xl font-bold text-gray-900 mb-6 flex items-center justify-center">
+          <span className="text-5xl mr-4">📋</span> Your Bill Review
+        </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left max-w-4xl mx-auto">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Amount Billed</p>
-            <p className="text-xl font-bold text-red-600">{pages[0]?.rawText.match(/\$\d+(\.\d{2})?/) || "$0.00"}</p>
+        {!mainContent && (
+          <div className="bg-red-50 p-10 rounded-xl border border-red-400 text-center">
+            <p className="text-2xl font-bold text-red-800 mb-4">
+              We could not read your bill clearly
+            </p>
+            <p className="text-gray-700 text-lg mb-6">
+              This happens when the image is blurry, low-resolution, or has overlays.
+            </p>
+            <button
+              onClick={onUseSample}
+              className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow hover:bg-blue-700 transition"
+            >
+              Try Sample Bill
+            </button>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Insurance Covered</p>
-            <p className="text-xl font-bold text-green-600">{/* extract from AI text or placeholder */}</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Amount You Owe</p>
-            <p className="text-xl font-bold text-yellow-700">{/* extract from AI text or placeholder */}</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Potential Savings</p>
-            <p className="text-xl font-bold text-purple-700">{/* extract from AI text or placeholder */}</p>
-          </div>
-        </div>
+        )}
 
-        <button
-          onClick={handleDownloadPDF}
-          className="mt-6 bg-gradient-to-r from-red-600 to-orange-600 text-white px-8 py-3 rounded-xl shadow-lg font-bold hover:scale-105 transform transition"
-        >
-          Download Full PDF
-        </button>
-      </div>
+        {mainContent && (
+          <>
+            {/* What We Found */}
+            <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 mb-8 shadow-lg">
+              <h4 className="text-2xl font-bold text-blue-900 mb-4 flex items-center">
+                <span className="text-4xl mr-4">✅</span> What We Found
+              </h4>
+              <p className="text-lg text-blue-800 leading-relaxed">
+                Your bill includes medical services, insurance adjustments, and your final responsibility. 
+                Important numbers and terms are highlighted for quick understanding.
+              </p>
+            </div>
 
-      {/* Page Tabs */}
-      <div className="flex gap-3 flex-wrap mb-6 justify-center">
-        {pages.map((p, i) => (
-          <button
-            key={i}
-            onClick={() => setActivePage(i)}
-            className={`px-4 py-2 rounded-xl font-medium transition ${
-              i === activePage ? "bg-red-600 text-white" : "bg-gray-200 dark:bg-gray-700"
-            }`}
-          >
-            Page {p.page}
-          </button>
-        ))}
-      </div>
+            {/* Explanation Content */}
+            <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap mb-8">
+              {highlightText(mainContent)}
+            </div>
 
-      {/* Active Page Explanation */}
-      <div
-        className="bg-gray-50 p-6 rounded-2xl shadow-inner text-gray-800 mb-8 whitespace-pre-wrap text-lg"
-        dangerouslySetInnerHTML={{ __html: highlightAmounts(pages[activePage].explanation) }}
-      />
+            {/* Next Steps */}
+            <div className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 mb-8 shadow-lg">
+              <h4 className="text-2xl font-bold text-green-900 mb-4 flex items-center">
+                <span className="text-4xl mr-4">🎯</span> Your Next Steps
+              </h4>
+              <ul className="text-lg text-green-800 space-y-2 list-disc list-inside">
+                <li>Request an <strong>itemized bill</strong> from your provider if you don't have one</li>
+                <li>Compare charges at <a href="https://www.fairhealthconsumer.org" target="_blank" rel="noopener noreferrer" className="underline font-bold">FairHealthConsumer.org</a></li>
+                <li>Call your insurance with questions using your claim number</li>
+                <li>If something looks wrong, appeal — many people successfully reduce or eliminate charges</li>
+              </ul>
+            </div>
 
-      {/* Next Steps / Rights */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-green-50 p-6 rounded-xl shadow-lg">
-          <h4 className="text-2xl font-bold mb-3 flex items-center">
-            <span className="text-4xl mr-3">🎯</span>Your Next Steps
-          </h4>
-          <ul className="list-disc list-inside space-y-2 text-green-800">
-            <li>Request an <strong>itemized bill</strong> from your provider if you don't have one</li>
-            <li>Compare charges at <a href="https://www.fairhealthconsumer.org" target="_blank" rel="noreferrer" className="underline font-bold">FairHealthConsumer.org</a></li>
-            <li>Call your insurance with questions using the claim number</li>
-            <li>Appeal if something looks incorrect — many successfully reduce charges</li>
-          </ul>
-        </div>
-        <div className="bg-purple-50 p-6 rounded-xl shadow-lg text-center">
-          <h4 className="text-2xl font-bold mb-3">You Have Rights</h4>
-          <p className="text-purple-800">
-            Medical billing errors are common. You do <strong>not</strong> have to accept surprise charges. Many patients successfully appeal and save hundreds or thousands. We're here to help you understand and fight back if needed.
-          </p>
-        </div>
+            {/* Your Rights */}
+            <div className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 mb-8 shadow-lg text-center">
+              <h4 className="text-2xl font-bold text-purple-900 mb-4">You Have Rights</h4>
+              <p className="text-lg text-purple-800 max-w-3xl mx-auto">
+                Medical billing errors are common. You do <strong>not</strong> have to accept overcharges. Many patients successfully appeal and save hundreds or thousands.
+              </p>
+            </div>
+
+            {/* Download PDF */}
+            <div className="text-center mb-10">
+              <button
+                onClick={handleDownloadPDF}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:scale-105 transition transform"
+              >
+                Download Full Explanation PDF
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Paid Features */}
-      {isPaid && paidFeatures && <PaidFeatures features={paidFeatures} />}
+      {features && <PaidFeatures features={features} />}
 
       {/* Upgrade CTA */}
-      {!isPaid && (
-        <div className="text-center mt-12">
+      {!isPaid && mainContent && (
+        <div className="text-center mt-16">
           <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-8 rounded-2xl shadow-2xl max-w-4xl mx-auto">
             <h3 className="text-3xl font-bold mb-4">Don't Pay Unfair Charges</h3>
-            <p className="text-xl mb-6 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-xl mb-8 leading-relaxed max-w-2xl mx-auto">
               Unlock expert review to spot red flags, estimate savings, and get a ready-to-send appeal letter.
             </p>
             <button
               onClick={onUpgrade}
               className="bg-white text-red-700 hover:bg-gray-100 font-bold py-5 px-12 rounded-2xl text-2xl shadow-xl transition transform hover:scale-105"
             >
-              Get Full Review & Appeal Tools
+              Get My Full Review & Appeal Tools
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Sample Bills */}
-      {samples && samples.length > 0 && (
-        <div className="mt-10">
-          <h4 className="text-2xl font-bold mb-4">Try a Sample Bill</h4>
-          <div className="flex gap-4 flex-wrap">
-            {samples.map((s, i) => (
-              <button
-                key={i}
-                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-xl shadow-sm"
-                onClick={() => s.onClick()}
-              >
-                {s.name}
-              </button>
-            ))}
+            <p className="mt-6 text-lg opacity-90">One-time or unlimited • 30-day money-back guarantee</p>
           </div>
         </div>
       )}
