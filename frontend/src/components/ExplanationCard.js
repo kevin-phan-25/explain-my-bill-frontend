@@ -1,174 +1,213 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"; // Assuming shadcn/ui or similar
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
   if (!result) return null;
 
   const { explanation, pages = [], isPaid } = result;
-  const [openItems, setOpenItems] = useState(["summary"]);
+  const [openSections, setOpenSections] = useState(["summary"]);
 
-  // Try to parse structured data from fullExplanation or per-page
-  const structured = pages.length > 0
-    ? pages.map(p => {
-        try { return JSON.parse(p.explanation); } catch { return null; }
-      }).filter(Boolean)
-    : [];
+  // Try to parse structured data (from new backend)
+  const structuredPages = pages
+    .map((p) => {
+      try {
+        return typeof p.structured === "object" ? p.structured : JSON.parse(p.explanation || "{}");
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
-  const hasStructured = structured.length > 0;
-  const mainData = hasStructured ? structured[0] : null; // Use first page for summary
+  const hasStructured = structuredPages.length > 0;
+  const mainData = hasStructured ? structuredPages[0] : null;
+
+  const toggleSection = (section) => {
+    setOpenSections((prev) =>
+      prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
+    );
+  };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    doc.text(explanation || "Medical Bill Explanation", 15, 15);
+    const text = explanation || "Medical Bill Explanation";
+    doc.text(text, 15, 15);
     doc.save("Medical_Bill_Explanation.pdf");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-6 md:p-12">
       <div className="max-w-5xl mx-auto">
         {/* Hero Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
             🔍 Your Medical Bill Review
           </h1>
-          <p className="text-xl text-white/80">AI-powered insights • Clear • Actionable</p>
+          <p className="text-lg md:text-xl text-white/80">AI-powered • Clear • Actionable</p>
         </div>
 
-        {/* Key Metrics Grid - Futuristic Glass Cards */}
+        {/* Key Metrics Grid */}
         {mainData && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             {[
-              { label: "Total Charges", value: mainData.keyAmounts.totalCharges || "N/A", color: "from-red-500 to-orange-500" },
-              { label: "Insurance Paid", value: mainData.keyAmounts.insurancePaid || "N/A", color: "from-green-500 to-emerald-500" },
-              { label: "You Owe", value: mainData.keyAmounts.patientResponsibility || "N/A", color: "from-yellow-500 to-amber-500" },
-              { label: "Potential Savings", value: isPaid ? "Up to $XXX" : "???", color: "from-blue-500 to-cyan-500" },
+              { label: "Total Charges", value: mainData.keyAmounts?.totalCharges || "N/A", gradient: "from-red-500 to-orange-500" },
+              { label: "Insurance Paid", value: mainData.keyAmounts?.insurancePaid || "N/A", gradient: "from-green-500 to-emerald-500" },
+              { label: "You Owe", value: mainData.keyAmounts?.patientResponsibility || "N/A", gradient: "from-yellow-500 to-amber-500" },
+              { label: "Potential Savings", value: isPaid ? "Estimated soon" : "???", gradient: "from-blue-500 to-cyan-500" },
             ].map((item, i) => (
-              <Card key={i} className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl hover:shadow-cyan-500/50 transition-all duration-500 hover:scale-105">
-                <div className={`bg-gradient-to-r ${item.color} p-1 rounded-t-xl`}>
-                  <div className="bg-black/40 rounded-t-xl px-6 py-3">
-                    <p className="text-white/70 text-sm">{item.label}</p>
+              <div
+                key={i}
+                className="relative overflow-hidden rounded-2xl backdrop-blur-xl bg-white/10 border border-white/20 shadow-2xl hover:shadow-cyan-500/50 transition-all duration-500 hover:scale-105"
+              >
+                <div className={`bg-gradient-to-r ${item.gradient} p-1 rounded-t-2xl`}>
+                  <div className="bg-black/40 rounded-t-2xl px-6 py-3">
+                    <p className="text-white/70 text-sm font-medium">{item.label}</p>
                   </div>
                 </div>
-                <div className="p-6 text-center">
-                  <p className="text-3xl font-bold text-white glow-cyan">{item.value}</p>
+                <div className="p-8 text-center">
+                  <p className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg glow">
+                    {item.value}
+                  </p>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Main Content Accordion */}
-        <Card className="backdrop-blur-2xl bg-white/5 border-white/10 shadow-2xl overflow-hidden">
-          <Accordion type="multiple" value={openItems} onValueChange={setOpenItems}>
-            {/* Summary / What We Found */}
-            <AccordionItem value="summary">
-              <AccordionTrigger className="px-8 text-2xl text-white hover:text-cyan-300">
-                ✅ What We Found
-              </AccordionTrigger>
-              <AccordionContent className="px-8 pb-8 text-white/90 text-lg leading-relaxed">
+        {/* Accordion Sections */}
+        <div className="space-y-6">
+          {/* Summary */}
+          <div className="rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
+            <button
+              onClick={() => toggleSection("summary")}
+              className="w-full px-8 py-6 text-left flex items-center justify-between text-2xl text-white hover:text-cyan-300 transition"
+            >
+              <span className="flex items-center gap-4">
+                <span className="text-4xl">✅</span> What We Found
+              </span>
+              <span className={`text-3xl transition-transform ${openSections.includes("summary") ? "rotate-180" : ""}`}>
+                ▼
+              </span>
+            </button>
+            {openSections.includes("summary") && (
+              <div className="px-8 pb-8 text-white/90 text-lg leading-relaxed">
                 {hasStructured ? (
                   <>
-                    <p className="mb-4">{mainData.summary}</p>
-                    <div className="flex flex-wrap gap-2 my-4">
-                      {mainData.services.map((s, i) => (
-                        <Badge key={i} variant="secondary" className="bg-white/20 text-white">{s}</Badge>
-                      ))}
-                    </div>
-                    <p>{mainData.explanation}</p>
+                    <p className="mb-6">{mainData.summary}</p>
+                    {mainData.services?.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mb-6">
+                        {mainData.services.map((s, i) => (
+                          <span key={i} className="px-4 py-2 bg-white/20 rounded-full text-sm">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="prose prose-invert max-w-none">{mainData.explanation}</div>
                   </>
                 ) : (
-                  <p>{explanation || "Loading explanation..."}</p>
+                  <p>{explanation || "Loading your bill analysis..."}</p>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </div>
+            )}
+          </div>
 
-            {/* Red Flags (Paid only) */}
-            {isPaid && mainData?.redFlags?.length > 0 && (
-              <AccordionItem value="redflags">
-                <AccordionTrigger className="px-8 text-2xl text-white hover:text-red-400">
-                  ⚠️ Potential Issues Detected
-                </AccordionTrigger>
-                <AccordionContent className="px-8 pb-8">
-                  <ul className="space-y-3 text-white/90">
+          {/* Red Flags - Paid only */}
+          {isPaid && mainData?.redFlags?.length > 0 && (
+            <div className="rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
+              <button
+                onClick={() => toggleSection("redflags")}
+                className="w-full px-8 py-6 text-left flex items-center justify-between text-2xl text-white hover:text-red-400 transition"
+              >
+                <span className="flex items-center gap-4">
+                  <span className="text-4xl">⚠️</span> Potential Issues Detected
+                </span>
+                <span className={`text-3xl transition-transform ${openSections.includes("redflags") ? "rotate-180" : ""}`}>
+                  ▼
+                </span>
+              </button>
+              {openSections.includes("redflags") && (
+                <div className="px-8 pb-8">
+                  <ul className="space-y-4 text-white/90 text-lg">
                     {mainData.redFlags.map((flag, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="text-red-400 text-2xl">•</span>
+                      <li key={i} className="flex items-start gap-4">
+                        <span className="text-red-400 text-2xl mt-1">•</span>
                         <span>{flag}</span>
                       </li>
                     ))}
                   </ul>
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                </div>
+              )}
+            </div>
+          )}
 
-            {/* Next Steps */}
-            <AccordionItem value="nextsteps">
-              <AccordionTrigger className="px-8 text-2xl text-white hover:text-green-400">
-                🎯 Recommended Next Steps
-              </AccordionTrigger>
-              <AccordionContent className="px-8 pb-8">
-                <ul className="space-y-4 text-white/90 text-lg">
+          {/* Next Steps */}
+          <div className="rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
+            <button
+              onClick={() => toggleSection("nextsteps")}
+              className="w-full px-8 py-6 text-left flex items-center justify-between text-2xl text-white hover:text-green-400 transition"
+            >
+              <span className="flex items-center gap-4">
+                <span className="text-4xl">🎯</span> Recommended Next Steps
+              </span>
+              <span className={`text-3xl transition-transform ${openSections.includes("nextsteps") ? "rotate-180" : ""}`}>
+                ▼
+              </span>
+            </button>
+            {openSections.includes("nextsteps") && (
+              <div className="px-8 pb-8">
+                <ol className="space-y-5 text-white/90 text-lg">
                   {(hasStructured ? mainData.nextSteps : [
-                    "Request an itemized bill from your provider",
-                    "Compare charges at FairHealthConsumer.org",
-                    "Call your insurance with questions",
-                    "Appeal if something looks wrong"
+                    "Request a detailed itemized bill from your provider",
+                    "Compare charges on FairHealthConsumer.org",
+                    "Call your insurance using the claim number",
+                    "Appeal anything that looks wrong — many succeed!"
                   ]).map((step, i) => (
-                    <li key={i} className="flex items-start gap-4">
-                      <span className="text-green-400 text-2xl font-bold">{i + 1}.</span>
+                    <li key={i} className="flex items-start gap-5">
+                      <span className="text-green-400 text-2xl font-bold min-w-[2rem]">{i + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {/* Download Button */}
-          <div className="p-8 text-center">
-            <Button
-              onClick={handleDownloadPDF}
-              size="lg"
-              className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold hover:from-cyan-400 hover:to-purple-500 shadow-lg hover:shadow-cyan-500/50 transition-all"
-            >
-              Download Full Report as PDF
-            </Button>
+                </ol>
+              </div>
+            )}
           </div>
-        </Card>
+        </div>
 
-        {/* Upgrade CTA (Free users) */}
+        {/* Download Button */}
+        <div className="text-center my-12">
+          <button
+            onClick={handleDownloadPDF}
+            className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold py-5 px-12 rounded-2xl shadow-2xl hover:shadow-cyan-500/60 transition-all hover:scale-105 text-xl"
+          >
+            Download Full Report as PDF
+          </button>
+        </div>
+
+        {/* Upgrade CTA for free users */}
         {!isPaid && (
           <div className="mt-16 text-center">
-            <Card className="backdrop-blur-xl bg-gradient-to-r from-red-600/20 to-orange-600/20 border-red-500/30 p-10">
-              <h3 className="text-4xl font-bold text-white mb-6">Unlock Expert Review & Appeal Tools</h3>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Spot hidden overcharges • Get estimated savings • Receive a ready-to-send appeal letter
+            <div className="rounded-3xl backdrop-blur-xl bg-gradient-to-r from-red-600/30 to-orange-600/30 border border-red-500/40 p-10 max-w-4xl mx-auto">
+              <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Unlock Expert Review & Appeal Tools
+              </h3>
+              <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+                Spot hidden overcharges • Estimate savings • Get a ready-to-send appeal letter
               </p>
-              <Button
+              <button
                 onClick={onUpgrade}
-                size="xl"
-                className="bg-white text-red-600 font-bold hover:bg-gray-100 shadow-2xl hover:scale-110 transition-transform"
+                className="bg-white text-red-600 font-bold py-6 px-16 rounded-2xl text-2xl shadow-2xl hover:scale-110 transition-transform"
               >
                 Upgrade Now – Save Money Today
-              </Button>
-              <p className="mt-6 text-white/70">30-day money-back • One-time or unlimited plans</p>
-            </Card>
+              </button>
+              <p className="mt-8 text-white/70 text-lg">30-day money-back • One-time or unlimited plans</p>
+            </div>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        .glow-cyan {
-          text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        .glow {
+          text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
         }
       `}</style>
     </div>
