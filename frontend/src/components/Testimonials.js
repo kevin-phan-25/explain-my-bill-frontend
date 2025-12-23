@@ -1,3 +1,4 @@
+// src/components/Testimonials.js
 import React from 'react';
 
 export default function Testimonials() {
@@ -29,33 +30,20 @@ export default function Testimonials() {
   ];
 
   return (
-    <section className="bg-blue-50 py-20" aria-labelledby="testimonials-heading">
-      <div className="container mx-auto px-6 max-w-6xl">
-        <h2 id="testimonials-heading" className="text-4xl font-bold text-center text-blue-900 mb-4">
-          What People Are Saying
+    <div className="bg-blue-50 py-20 mt-20">
+      <div className="container mx-auto px-6 max-w-5xl">
+        <h2 className="text-4xl font-bold text-center text-blue-900 mb-12">
+          Trusted by People Like You
         </h2>
-        <p className="text-xl text-center text-gray-700 mb-12 max-w-3xl mx-auto">
-          Real users sharing how ExplainMyBill helped them understand and fight their medical bills.
-        </p>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid md:grid-cols-3 gap-10">
           {testimonials.map((t, i) => (
-            <figure
-              key={i}
-              className="glass-card p-8 text-center hover:shadow-2xl transition-shadow duration-300"
-              tabIndex={0}
-              aria-labelledby={`testimonial-name-${i}`}
-            >
-              <blockquote className="text-lg text-gray-700 italic mb-6 leading-relaxed">
-                "{t.text}"
-              </blockquote>
-              <figcaption id={`testimonial-name-${i}`} className="font-bold text-blue-900 text-xl">
-                {t.name}
-              </figcaption>
-            </figure>
+            <div key={i} className="glass-card p-8 text-center">
+              <p className="text-lg text-gray-700 italic mb-6">"{t.text}"</p>
+              <p className="font-bold text-blue-900">{t.name}</p>
+            </div>
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
