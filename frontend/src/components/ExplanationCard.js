@@ -1,7 +1,7 @@
 // src/components/ExplanationCard.js
 import React from "react";
 import PaidFeatures from "./PaidFeatures";
-import { saveAs } from "file-saver";
+import { jsPDF } from "jspdf";
 
 // Regex patterns for highlighting
 const patterns = {
@@ -14,12 +14,16 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
   if (!result) return null;
 
   const { explanation, features, isPaid } = result;
-  const mainContent = explanation?.trim() || null;
+  // ✅ Use fullExplanation if explanation is missing (for sample bills)
+  const mainContent = explanation?.trim() || result.fullExplanation?.trim() || null;
 
-  // ✅ Download explanation as PDF
+  // ✅ Download explanation as PDF using jsPDF
   const handleDownloadPDF = () => {
-    const blob = new Blob([mainContent], { type: "application/pdf" });
-    saveAs(blob, "Medical_Bill_Explanation.pdf");
+    if (!mainContent) return;
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const lines = doc.splitTextToSize(mainContent, 500);
+    doc.text(lines, 40, 50);
+    doc.save("Medical_Bill_Explanation.pdf");
   };
 
   // Highlight important text
