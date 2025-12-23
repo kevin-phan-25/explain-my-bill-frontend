@@ -32,11 +32,11 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // Sample bill images (updated with unique images)
+  // Sample bill images (fixed with unique images)
   const sampleBills = [
     {
       name: "Routine Check-Up (Normal)",
-      image: "https://www.devry.edu/blog/examples/_jcr_content/root/container/structured_container_161844580/content-col-1/container/image_copy_copy_copy.coreimg.jpeg/1753935319005/pic-medical-coding-example-1.jpeg",
+      image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg",
       type: 'routine'
     },
     {
@@ -56,7 +56,7 @@ function App() {
     },
     {
       name: "Out-of-Network Specialist",
-      image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true? u=1javjt",
+      image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true&u=1javjt",
       type: 'out_network'
     },
     {
@@ -79,7 +79,7 @@ function App() {
       if (type === 'routine') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Standard check-up.\n\nCPT 99214: Detailed office visit — $195 charged.\nInsurance paid $156.\nYou owe $39 — normal." }],
+          pages: [{ page: 1, explanation: "This is a standard check-up bill. The CPT code 99214 indicates a detailed office visit for an established patient. The provider charged $195, your insurance allowed $156 (after adjustments), and paid $117. You owe $39, which is normal for this type of visit. No red flags here." }],
           fullExplanation: "Normal check-up. You owe $39.",
           paidFeatures: {
             redFlags: [],
@@ -93,7 +93,7 @@ function App() {
       } else if (type === 'er') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Emergency room visit.\n\nCPT 99285: High complexity ER — $4,200 charged.\nInsurance paid $1,800.\nYou owe $2,400 — very high.\nRED FLAG: Likely overcharged." }],
+          pages: [{ page: 1, explanation: "This is an emergency room visit bill. The CPT code 99285 indicates a high complexity ER visit. The provider charged $4,200, your insurance allowed $2,400 (after adjustments), and paid $1,800. You owe $600, which seems high. RED FLAG: ER charges are often inflated; check if this is above average in your area." }],
           fullExplanation: "High ER bill — likely overcharged.",
           paidFeatures: {
             redFlags: ["Charge 2x national average"],
@@ -107,7 +107,7 @@ function App() {
       } else if (type === 'denied') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Lab tests denied.\n\nCPT 80053 & 85025 — $265 charged.\nInsurance denied as 'not medically necessary'.\nYou owe full amount.\nRED FLAG: Appeal often wins." }],
+          pages: [{ page: 1, explanation: "This is a bill for lab tests that were denied by insurance. The CPT codes 80053 and 85025 indicate comprehensive metabolic panel and complete blood count. The provider charged $265, but insurance denied as 'not medically necessary'. You owe the full amount. RED FLAG: Denials are often overturnable with a doctor's note." }],
           fullExplanation: "Labs denied — appeal recommended.",
           paidFeatures: {
             redFlags: ["Full denial"],
@@ -121,7 +121,7 @@ function App() {
       } else if (type === 'ambulance') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Ambulance transport.\n\n$1,800 charged.\nInsurance paid $400.\nYou owe $1,400.\nRED FLAG: Common surprise bill." }],
+          pages: [{ page: 1, explanation: "This is an ambulance transport bill. The base charge is $1,800 for transport and mileage. Insurance paid $400 after adjustments. You owe $1,400. RED FLAG: Ambulance bills are often surprise charges and can be reduced under the No Surprises Act." }],
           fullExplanation: "Surprise ambulance bill.",
           paidFeatures: {
             redFlags: ["Possible surprise billing"],
@@ -135,7 +135,7 @@ function App() {
       } else if (type === 'out_network') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Specialist visit.\n\nCPT 99204: New patient — $650 charged.\nOut-of-network.\nInsurance paid $120.\nYou owe $530.\nRED FLAG: High out-of-network rate." }],
+          pages: [{ page: 1, explanation: "This is a specialist visit bill. The CPT code 99204 indicates a detailed new patient visit. The provider charged $650, but as out-of-network, insurance allowed $150 and paid $120. You owe $530. RED FLAG: Out-of-network charges are often much higher; check if you can appeal for in-network rates." }],
           fullExplanation: "Out-of-network specialist.",
           paidFeatures: {
             redFlags: ["Out-of-network charge"],
@@ -149,7 +149,7 @@ function App() {
       } else if (type === 'dental') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Dental cleaning.\n\nD1110: Cleaning — $120\nD0210: X-rays — $85\nD0150: Exam — $65\nTotal $270.\nInsurance paid $180.\nYou owe $90 — standard." }],
+          pages: [{ page: 1, explanation: "This is a dental cleaning and exam bill. The codes D1110 (adult cleaning $120), D0210 (full mouth X-rays $85), and D0150 (comprehensive exam $65) add up to $270. Insurance paid $180. You owe $90, which is standard for this service." }],
           fullExplanation: "Normal dental visit. You owe $90.",
           paidFeatures: {
             redFlags: [],
@@ -163,7 +163,7 @@ function App() {
       } else if (type === 'vision') {
         sampleData = {
           isPaid: true,
-          pages: [{ page: 1, explanation: "Eye exam + glasses.\n\n92015: Refraction — $85\nS0620: Routine exam — $120\nFrames/lenses: $280\nTotal $485.\nVision plan paid $150.\nYou owe $335 — typical." }],
+          pages: [{ page: 1, explanation: "This is a vision exam and glasses bill. The codes 92015 (refraction $85) and S0620 (routine exam $120), plus frames/lenses $280, total $485. Vision plan paid $150. You owe $335, which is typical for routine vision care." }],
           fullExplanation: "Routine vision care. You owe $335.",
           paidFeatures: {
             redFlags: [],
