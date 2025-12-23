@@ -1,8 +1,6 @@
 // src/components/UpgradeModal.js
-
 import React, { useState } from 'react';
 import { createCheckoutSession } from '../api/explainApi';
-import { motion } from 'framer-motion';
 
 export default function UpgradeModal({ onClose, stripePromise }) {
   const [loading, setLoading] = useState(false);
@@ -19,56 +17,39 @@ export default function UpgradeModal({ onClose, stripePromise }) {
     setLoading(false);
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
-
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <motion.div
-        className="glass-card max-w-lg w-full p-8 relative"
-        initial="hidden"
-        animate="visible"
-        variants={cardVariants}
-      >
+      <div className="glass-card max-w-lg w-full p-8">
         <h2 className="text-3xl font-bold mb-6 text-center">Unlock Full Power</h2>
         <p className="text-center text-gray-600 mb-8">
           Get red flags, appeal letters, savings estimates, insurance insights, and more.
         </p>
 
-        {/* Payment Buttons */}
-        <motion.div
-          className="space-y-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.2 } }}
-        >
+        <div className="space-y-6">
           <button
             onClick={() => handlePayment('one-time')}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition shadow-lg"
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition"
           >
             One-Time Access • $17.99
           </button>
+
           <button
             onClick={() => handlePayment('monthly')}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition shadow-lg"
+            className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-6 rounded-xl font-bold text-xl hover:scale-105 transition"
           >
             Unlimited Monthly • $9.99/mo
           </button>
-        </motion.div>
+        </div>
 
-        {/* Close Button */}
-        <motion.button
+        <button
           onClick={onClose}
           className="mt-6 text-center w-full text-gray-500 hover:text-gray-700"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.5, delay: 0.3 } }}
         >
           Maybe later
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
     </div>
   );
 }
