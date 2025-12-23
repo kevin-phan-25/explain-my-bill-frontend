@@ -1,77 +1,79 @@
-// src/components/BillUploader.js
-import React, { useState } from 'react';
-import { explainBill } from '../api/explainApi';
+import React, { useRef, useState } from 'react';
+import { uploadBillToAPI } from '../api/explainApi'; // your API call
 
 export default function BillUploader({ onResult, onLoading }) {
-  const [file, setFile] = useState(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
-    setLoading(true);
-    setError('');
+    setError(null);
     onLoading(true);
 
-    const formData = new FormData();
-    formData.append("bill", file);
-
     try {
-      const data = await explainBill(formData);
-      onResult(data);
+      // Only accept images or PDFs under 4MB
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        setError('Only images and PDFs are allowed.');
+        onLoading(false);
+        return;
+      }
+      if (file.size > 4 * 1024 * 1024) {
+        setError('File must be under 4MB.');
+        onLoading(false);
+        return;
+      }
+
+      // Upload to your API
+      const formData = new FormData();
+      formData.append('bill', file);
+
+      const response = await uploadBillToAPI(formData);
+      if (response && response.explanation) {
+        onResult({
+          isPaid: response.isPaid || false,
+          explanation: response.explanation,
+          features: response.features || {},
+        });
+      } else {
+        setError('Could not process your bill. Try a clear image or PDF.');
+      }
     } catch (err) {
-      setError(err.message || "Failed to analyze bill.");
+      console.error(err);
+      setError('Upload failed. Please try again.');
     } finally {
-      setLoading(false);
       onLoading(false);
     }
   };
 
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div
-        className={`border-4 border-dashed rounded-lg p-5 text-center transition-all ${
-          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-        } ${loading ? 'opacity-70' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragActive(false);
-          if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-        }}
+    <div className="text-center">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileChange}
+        accept="image/*,application/pdf"
+      />
+      <button
+        onClick={handleClick}
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg hover:scale-105 transition transform"
       >
-        <input
-          type="file"
-          accept="image/*,.pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-          className="hidden"
-          id="bill-upload"
-        />
-        <label htmlFor="bill-upload" className="cursor-pointer block">
-          <div className="text-4xl mb-2 text-blue-600" aria-hidden="true">📄</div>
-          <p className="text-base font-bold text-gray-800 mb-1">
-            {loading ? "Analyzing..." : "Drop bill or click to upload"}
-          </p>
-          <p className="text-xs text-gray-600">PDF or image • Max 20MB</p>
-          {file && <p className="mt-2 text-sm text-green-600 font-bold">{file.name}</p>}
-        </label>
-      </div>
+        Upload Bill
+      </button>
 
-      {error && <p className="text-red-600 text-center text-sm">{error}</p>}
+      {error && (
+        <p className="text-red-600 mt-4 text-lg font-semibold">{error}</p>
+      )}
 
-      <div className="text-center">
-        <button
-          type="submit"
-          disabled={!file || loading}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg text-base shadow transition"
-        >
-          {loading ? "Processing..." : "Explain My Bill"}
-        </button>
-      </div>
-    </form>
+      <p className="text-gray-500 mt-2 text-sm">
+        Supported formats: JPG, PNG, PDF. Max size: 4MB.
+      </p>
+    </div>
   );
 }
