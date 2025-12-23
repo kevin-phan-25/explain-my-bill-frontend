@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { uploadBillToAPI } from '../api/explainApi.js'; // ← Correct import
+import { uploadBillToAPI } from '../api/explainApi'; // ← Correct import
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
