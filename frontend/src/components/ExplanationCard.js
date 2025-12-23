@@ -1,73 +1,61 @@
-import React from 'react';
+// src/components/ExplanationCard.js
+import React, { useState } from 'react';
+import jsPDF from 'jspdf';
 import PaidFeatures from './PaidFeatures';
 
 export default function ExplanationCard({ result, onUpgrade }) {
+  const [activePage, setActivePage] = useState(0);
+
   if (!result) return null;
 
-  const {
-    explanation,
-    fullExplanation,
-    features,
-    isPaid,
-  } = result;
-
-  const mainContent =
-    explanation?.trim() ||
-    fullExplanation?.trim() ||
-    null;
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    doc.text(result.explanation, 10, 10);
+    doc.save('bill-explanation.pdf');
+  };
 
   return (
-    <div className="glass-card mt-12 p-6 shadow-2xl">
-      <div className="bg-gray-50 border-l-8 border-gray-700 rounded-2xl p-10 shadow-2xl">
-        <h3 className="text-3xl font-bold text-gray-900 mb-6 flex items-center justify-center">
-          <span className="text-5xl mr-4">📋</span>
-          Your Bill Review
-        </h3>
+    <div className="glass-card p-8">
+      <h2 className="text-3xl font-bold mb-6">Your Bill Explanation</h2>
 
-        <p className="text-xl text-gray-700 leading-relaxed text-center mb-8 max-w-4xl mx-auto">
-          We reviewed your medical bill line by line. Below is a clear, honest breakdown of what it means — including charges, insurance adjustments, and what you actually owe.
-        </p>
-
-        {mainContent ? (
-          <>
-            <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 mb-10 shadow-lg">
-              <h4 className="text-2xl font-bold text-blue-900 mb-4 flex items-center">
-                <span className="text-4xl mr-4">✅</span> What We Found
-              </h4>
-              <p className="text-lg text-blue-800 leading-relaxed">
-                Your bill includes medical services, insurance processing, and your final responsibility.
-                We broke it down into plain English so you know exactly what you're being asked to pay — and why.
-              </p>
-            </div>
-
-            <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap">
-              {mainContent}
-            </div>
-          </>
-        ) : (
-          <div className="bg-red-50 p-10 rounded-xl border border-red-400 text-center">
-            <p className="text-2xl font-bold text-red-800 mb-4">
-              We could not read your bill clearly
-            </p>
-            <p className="text-gray-700 text-lg">
-              Please upload a clean PDF or image.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {features && <PaidFeatures features={features} />}
-
-      {!isPaid && mainContent && (
-        <div className="text-center mt-16">
-          <button
-            onClick={onUpgrade}
-            className="bg-red-600 text-white px-10 py-5 rounded-2xl text-xl font-bold"
-          >
-            Get My Full Review
+      {!result.isPaid && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+          <p className="text-lg">
+            This is a free summary. <strong>Upgrade</strong> for the full detailed explanation, red flags, appeal letter, and more.
+          </p>
+          <button onClick={onUpgrade} className="btn-primary mt-4">
+            Unlock Full Features
           </button>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-3 mb-8">
+        {result.pages.map((page, i) => (
+          <button
+            key={i}
+            onClick={() => setActivePage(i)}
+            className={`px-6 py-3 rounded-xl font-medium transition ${
+              i === activePage ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700'
+            }`}
+          >
+            Page {page.page}
+          </button>
+        ))}
+      </div>
+
+      <div className="prose prose-lg max-w-none">
+        <pre className="whitespace-pre-wrap font-sans text-gray-700 dark:text-gray-300 leading-relaxed">
+          {result.pages[activePage].explanation}
+        </pre>
+      </div>
+
+      {result.isPaid && (
+        <button onClick={downloadPDF} className="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl">
+          Download PDF Explanation
+        </button>
+      )}
+
+      {result.isPaid && result.paidFeatures && <PaidFeatures features={result.paidFeatures} />}
     </div>
   );
 }
