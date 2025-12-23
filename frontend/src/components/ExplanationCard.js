@@ -1,12 +1,13 @@
 // src/components/ExplanationCard.js
 import React from "react";
 import PaidFeatures from "./PaidFeatures";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { saveAs } from "file-saver";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
+// Regex patterns for highlighting
 const patterns = {
   amount: /\$\d{1,3}(?:,\d{3})*(?:\.\d{2})?/g, // $75.00, $1,200.50
-  percentage: /\d{1,3}%/g,                     
+  percentage: /\d{1,3}%/g,                     // 20%, 100%
   keywords: /\b(deductible|copay|insurance|covered|balance|owed|EOB|claim|denied)\b/gi,
 };
 
@@ -14,82 +15,83 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
   if (!result) return null;
 
   const { explanation, features, isPaid } = result;
-  const mainContent = explanation?.trim() || "";
+  const mainContent = explanation?.trim() || null;
 
-  // ✅ Generate professional PDF
+  // ✅ Download explanation as styled PDF using pdf-lib
   const handleDownloadPDF = async () => {
     try {
       const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage();
+      const page = pdfDoc.addPage([600, 800]);
       const { width, height } = page.getSize();
-      const margin = 50;
-      const fontSize = 12;
-
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-      let y = height - margin;
+      let y = height - 50;
 
-      const drawText = (text, options = {}) => {
-        const { size = fontSize, color = rgb(0, 0, 0), font: fnt = font } = options;
-        page.drawText(text, { x: margin, y, size, font: fnt, color });
-        y -= size + 8; // spacing between lines
-      };
-
-      // Header
-      drawText("📋 ExplainMyBill - Medical Bill Review", { size: 18, font: boldFont });
-      drawText("------------------------------------------------------");
-
-      // Explanation content with highlighting amounts and keywords
-      mainContent.split("\n").forEach((line) => {
-        // Highlight amounts
-        let formattedLine = line.replace(patterns.amount, (m) => `[${m}]`);
-        formattedLine = formattedLine.replace(patterns.percentage, (m) => `[${m}]`);
-        formattedLine = formattedLine.replace(patterns.keywords, (m) => `[${m}]`);
-        drawText(formattedLine, { size: 12 });
+      // Title
+      page.drawText("📋 Your Bill Review", {
+        x: 50,
+        y,
+        size: 24,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.5),
       });
+      y -= 40;
 
-      drawText("\n"); // extra space
+      // Main content lines
+      mainContent.split("\n").forEach((line) => {
+        let text = line;
 
-      // Paid features
-      if (features) {
-        if (features.redFlags?.length > 0) {
-          drawText("⚠️ Red Flags:", { font: boldFont });
-          features.redFlags.forEach((f) => drawText(`- ${f}`));
+        // Highlight amounts
+        text = text.replace(patterns.amount, (m) => `[AMOUNT:${m}]`);
+        text = text.replace(patterns.percentage, (m) => `[PERCENT:${m}]`);
+        text = text.replace(patterns.keywords, (m) => `[KEYWORD:${m}]`);
+
+        const segments = text.split(/(\[AMOUNT:.*?\]|\[PERCENT:.*?\]|\[KEYWORD:.*?\])/g);
+
+        let x = 50;
+        segments.forEach((seg) => {
+          if (seg.startsWith("[AMOUNT:")) {
+            const val = seg.replace("[AMOUNT:", "").replace("]", "");
+            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0.7, 0, 0) });
+          } else if (seg.startsWith("[PERCENT:")) {
+            const val = seg.replace("[PERCENT:", "").replace("]", "");
+            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0, 0.3, 0.7) });
+          } else if (seg.startsWith("[KEYWORD:")) {
+            const val = seg.replace("[KEYWORD:", "").replace("]", "");
+            page.drawText(val, { x, y, font: fontBold, size: 12, color: rgb(0.6, 0.4, 0), });
+          } else {
+            page.drawText(seg, { x, y, font, size: 12, color: rgb(0, 0, 0) });
+          }
+          x += font.widthOfTextAtSize(seg, 12);
+        });
+        y -= 18;
+        if (y < 50) {
+          // add new page if space runs out
+          y = height - 50;
+          page = pdfDoc.addPage([600, 800]);
         }
-        if (features.cptExplanations?.length > 0) {
-          drawText("\n📋 CPT Codes Explained:", { font: boldFont });
-          features.cptExplanations.forEach((f) => drawText(`- ${f}`));
-        }
-        if (features.estimatedSavings) {
-          drawText(`\n💰 Potential Savings: ${features.estimatedSavings.potentialSavings || "$200–$800"}`, { font: boldFont });
-        }
-        if (features.customAdvice) {
-          drawText(`\n💡 Next Steps: ${features.customAdvice}`, { font: boldFont });
-        }
-        if (features.appealLetter) {
-          drawText(`\n✉️ Appeal Letter:\n${features.appealLetter}`);
-        }
-      }
+      });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       saveAs(blob, "Medical_Bill_Explanation.pdf");
     } catch (err) {
-      console.error("PDF generation error:", err);
-      alert("Failed to generate PDF. Please try again.");
+      alert("Failed to generate PDF: " + err.message);
     }
   };
 
+  // Highlight important text for UI
   const highlightText = (text) => {
     if (!text) return null;
-    return text.split("\n").map((line, idx) => {
+    const lines = text.split("\n").map((line, idx) => {
       let formatted = line
         .replace(patterns.amount, (m) => `<span class="text-red-600 font-bold">${m}</span>`)
         .replace(patterns.percentage, (m) => `<span class="text-blue-600 font-semibold">${m}</span>`)
         .replace(patterns.keywords, (m) => `<span class="bg-yellow-200 px-1 rounded">${m}</span>`);
       return <p key={idx} className="mb-2" dangerouslySetInnerHTML={{ __html: formatted }} />;
     });
+    return lines;
   };
 
   return (
@@ -118,6 +120,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
 
         {mainContent && (
           <>
+            {/* What We Found */}
             <div className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 mb-8 shadow-lg">
               <h4 className="text-2xl font-bold text-blue-900 mb-4 flex items-center">
                 <span className="text-4xl mr-4">✅</span> What We Found
@@ -128,10 +131,12 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
               </p>
             </div>
 
+            {/* Explanation Content */}
             <div className="bg-white p-10 rounded-xl shadow-inner border border-gray-300 text-lg text-gray-800 leading-relaxed whitespace-pre-wrap mb-8">
               {highlightText(mainContent)}
             </div>
 
+            {/* Next Steps */}
             <div className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 mb-8 shadow-lg">
               <h4 className="text-2xl font-bold text-green-900 mb-4 flex items-center">
                 <span className="text-4xl mr-4">🎯</span> Your Next Steps
@@ -144,6 +149,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
               </ul>
             </div>
 
+            {/* Your Rights */}
             <div className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 mb-8 shadow-lg text-center">
               <h4 className="text-2xl font-bold text-purple-900 mb-4">You Have Rights</h4>
               <p className="text-lg text-purple-800 max-w-3xl mx-auto">
@@ -151,6 +157,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
               </p>
             </div>
 
+            {/* Download PDF */}
             <div className="text-center mb-10">
               <button
                 onClick={handleDownloadPDF}
@@ -163,8 +170,10 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
         )}
       </div>
 
+      {/* Paid Features */}
       {features && <PaidFeatures features={features} />}
 
+      {/* Upgrade CTA */}
       {!isPaid && mainContent && (
         <div className="text-center mt-16">
           <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-8 rounded-2xl shadow-2xl max-w-4xl mx-auto">
