@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
-// SVG Chevron Icon (down/up arrow)
+// Rotating Chevron Icon
 const ChevronDown = ({ isOpen }) => (
   <svg
     className={`w-6 h-6 sm:w-8 sm:h-8 text-white transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
@@ -39,113 +39,217 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
+  // === ULTRA-MODERN, PROFESSIONAL, FUTURISTIC PDF EXPORT ===
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
-    let y = 30;
+    let y = 25;
 
-    doc.setFontSize(24);
+    // Header – Deep futuristic gradient background
+    doc.setFillColor(20, 15, 60);
+    doc.rect(0, 0, pageWidth, 55, "F");
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(40, 40, 120);
-    doc.text("Your Medical Bill Review", margin, y);
+    doc.text("Medical Bill Intelligence Report", margin, y);
     y += 12;
 
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Generated on ${new Date().toLocaleDateString()} • Dual AI Analysis`, margin, y);
-    y += 15;
+    // Subtitle
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150, 220, 255);
+    doc.text("Dual AI-Powered • Confidence Verified • Secure Analysis", margin, y);
+    y += 10;
 
-    if (mainData?.keyAmounts) {
-      doc.setFontSize(16);
-      doc.setTextColor(30, 30, 80);
-      doc.text("Key Financial Summary", margin, y);
-      y += 10;
+    // Date & Confidence Legend
+    doc.setFontSize(11);
+    doc.setTextColor(180, 220, 255);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
+    doc.text("Confidence: 🟢 High (80–100%)   🟡 Medium (50–79%)   🔴 Low (<50%)", margin, y + 8);
+    y += 25;
+
+    // Key Financial Summary – Modern Card
+    if (mainData?.keyAmounts || mainData?.confidences) {
+      doc.setFillColor(15, 10, 50);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 75, 10, 10, "F");
+      y += 5;
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Financial Summary", margin, y);
+      y += 15;
 
       const amounts = [
-        { label: "Total Charges", value: mainData.keyAmounts.totalCharges || "Not specified" },
-        { label: "Insurance Paid", value: mainData.keyAmounts.insurancePaid || "Not specified" },
-        { label: "Insurance Adjusted", value: mainData.keyAmounts.insuranceAdjusted || "Not specified" },
-        { label: "Patient Responsibility", value: mainData.keyAmounts.patientResponsibility || "Not specified" },
+        { label: "Total Charges", value: mainData.keyAmounts?.totalCharges, conf: mainData.confidences?.totalCharges },
+        { label: "Insurance Paid", value: mainData.keyAmounts?.insurancePaid, conf: mainData.confidences?.insurancePaid },
+        { label: "Insurance Adjusted", value: mainData.keyAmounts?.insuranceAdjusted || "Not listed", conf: null },
+        { label: "Patient Responsibility", value: mainData.keyAmounts?.patientResponsibility, conf: mainData.confidences?.patientResponsibility },
       ];
 
-      doc.setFontSize(12);
-      doc.setTextColor(0);
+      doc.setFontSize(13);
       amounts.forEach((item) => {
+        const confBadge = item.conf !== undefined && item.conf !== null
+          ? item.conf >= 80 ? "🟢" : item.conf >= 50 ? "🟡" : "🔴"
+          : "";
+
         doc.setFont("helvetica", "bold");
-        doc.text(`${item.label}:`, margin, y);
+        doc.setTextColor(180, 230, 255);
+        doc.text(`${item.label}:`, margin + 5, y);
+
         doc.setFont("helvetica", "normal");
-        doc.text(item.value, margin + 70, y);
-        y += 10;
+        doc.setTextColor(255, 255, 255);
+        doc.text(item.value || "Not specified", margin + 85, y);
+
+        if (confBadge) {
+          doc.setFontSize(11);
+          doc.setTextColor(item.conf >= 80 ? 100, 255, 150 : item.conf >= 50 ? 255, 255, 120 : 255, 120, 120);
+          doc.text(`${confBadge} ${item.conf}% Confidence`, margin + 85, y + 7);
+          doc.setFontSize(13);
+        }
+
+        y += 20;
       });
-      y += 8;
+      y += 10;
     }
 
+    // Services Provided
     if (mainData?.services?.length > 0) {
+      doc.setFillColor(20, 15, 70);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 15 + mainData.services.length * 9, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
-      doc.setTextColor(30, 30, 80);
-      doc.text("Services Provided", margin, y);
-      y += 10;
+      doc.setFont("helvetica", "bold");
+      doc.text("Services & Procedures", margin, y);
+      y += 12;
+
       doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
       mainData.services.forEach((service) => {
-        doc.text(`• ${service}`, margin + 5, y);
-        y += 8;
+        const lines = doc.splitTextToSize(service, pageWidth - 2 * margin - 20);
+        doc.text(`• ${lines[0]}`, margin + 8, y);
+        lines.slice(1).forEach(line => {
+          y += 7;
+          doc.text(line, margin + 12, y);
+        });
+        y += 9;
       });
-      y += 8;
-    }
-
-    if (mainData?.summary) {
-      doc.setFontSize(16);
-      doc.setTextColor(30, 30, 80);
-      doc.text("Summary", margin, y);
       y += 10;
-      doc.setFontSize(12);
-      doc.setTextColor(50);
-      const summaryLines = doc.splitTextToSize(mainData.summary, pageWidth - 2 * margin);
-      doc.text(summaryLines, margin, y);
-      y += summaryLines.length * 7 + 10;
     }
 
+    // Executive Summary
+    if (mainData?.summary) {
+      doc.setFillColor(25, 20, 80);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 50, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(180, 240, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Executive Summary", margin, y);
+      y += 12;
+
+      doc.setFontSize(12);
+      doc.setTextColor(220, 240, 255);
+      const summaryLines = doc.splitTextToSize(mainData.summary, pageWidth - 2 * margin - 15);
+      doc.text(summaryLines, margin + 5, y);
+      y += summaryLines.length * 8 + 15;
+    }
+
+    // Detailed Explanation
+    doc.setFillColor(10, 8, 50);
+    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 90, 8, 8, "F");
+    y += 5;
+
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
-    doc.setTextColor(30, 30, 80);
+    doc.setFont("helvetica", "bold");
     doc.text("Detailed Explanation", margin, y);
-    y += 10;
+    y += 12;
 
     const explanationText = mainData?.explanation || explanation || "No detailed explanation available.";
-    const lines = doc.splitTextToSize(explanationText, pageWidth - 2 * margin);
+    const explanationLines = doc.splitTextToSize(explanationText, pageWidth - 2 * margin - 15);
     doc.setFontSize(11);
-    doc.setTextColor(70);
-    doc.text(lines, margin, y);
-    y += lines.length * 6 + 15;
+    doc.setTextColor(200, 230, 255);
+    doc.text(explanationLines, margin + 5, y);
+    y += explanationLines.length * 7 + 20;
 
+    // Red Flags (Paid Only)
+    if (isPaid && mainData?.redFlags?.length > 0) {
+      doc.setFillColor(90, 15, 40);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainData.redFlags.length * 10, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(255, 120, 120);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("⚠️ Critical Alerts & Potential Issues", margin, y);
+      y += 14;
+
+      doc.setFontSize(11);
+      mainData.redFlags.forEach((flag) => {
+        const flagLines = doc.splitTextToSize(flag, pageWidth - 2 * margin - 20);
+        doc.text(`• ${flagLines[0]}`, margin + 8, y);
+        flagLines.slice(1).forEach(line => {
+          y += 7;
+          doc.text(line, margin + 12, y);
+        });
+        y += 10;
+      });
+      y += 10;
+    }
+
+    // Recommended Next Steps
+    doc.setFillColor(10, 60, 40);
+    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 70, 8, 8, "F");
+    y += 5;
+
+    doc.setTextColor(120, 255, 180);
     doc.setFontSize(16);
-    doc.setTextColor(30, 30, 80);
-    doc.text("Recommended Next Steps", margin, y);
-    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("🎯 Recommended Actions", margin, y);
+    y += 14;
 
-    const steps = hasStructured
-      ? mainData.nextSteps
-      : [
-          "Request a detailed itemized bill from your provider",
-          "Compare charges on FairHealthConsumer.org",
-          "Call your insurance using the claim number",
-          "Appeal anything that looks wrong — many succeed!",
-        ];
+    const steps = hasStructured ? mainData.nextSteps : [
+      "Request a detailed itemized bill from your provider",
+      "Compare charges on FairHealthConsumer.org",
+      "Call your insurance using the claim number",
+      "Appeal anything that looks wrong — many succeed!"
+    ];
 
     doc.setFontSize(11);
+    doc.setTextColor(200, 255, 230);
     steps.forEach((step, i) => {
-      doc.text(`${i + 1}. ${step}`, margin + 5, y);
-      y += 8;
+      const stepLines = doc.splitTextToSize(step, pageWidth - 2 * margin - 20);
+      doc.text(`${i + 1}. ${stepLines[0]}`, margin + 8, y);
+      stepLines.slice(1).forEach(line => {
+        y += 7;
+        doc.text(line, margin + 15, y);
+      });
+      y += 10;
     });
 
-    y += 15;
-    doc.setFontSize(10);
-    doc.setTextColor(120);
-    doc.text("This report is for informational purposes only. Always verify with your provider and insurer.", margin, y);
+    // Futuristic Footer
+    doc.setFillColor(15, 10, 60);
+    doc.rect(0, pageHeight - 35, pageWidth, 35, "F");
 
-    doc.save("Medical_Bill_Review_Report.pdf");
+    doc.setTextColor(150, 200, 255);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "italic");
+    doc.text("Generated by ExplainMyBill • Advanced Dual AI Intelligence Engine", margin, pageHeight - 18);
+    doc.setFontSize(10);
+    doc.text("This report is for informational purposes only. Always verify with your healthcare provider and insurer.", margin, pageHeight - 10);
+
+    doc.save("Medical_Bill_Intelligence_Report.pdf");
   };
 
+  // Confidence Badge Component
   const ConfidenceBadge = ({ score }) => {
     if (score === undefined || score === null) return null;
     const color = score >= 80 ? "text-green-400" : score >= 50 ? "text-yellow-400" : "text-red-400";
@@ -164,7 +268,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Dual AI Powered</p>
         </div>
 
-        {/* Key Metrics – Reduced size by ~40% */}
+        {/* Key Metrics – 40% smaller */}
         {mainData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 sm:mb-10">
             {[
@@ -298,7 +402,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
             onClick={handleDownloadPDF}
             className="bg-gradient-to-r from-cyan-600 to-purple-700 text-white font-bold py-3 sm:py-4 px-8 sm:px-12 rounded-2xl sm:rounded-3xl shadow-2xl hover:shadow-cyan-500/70 transition-all hover:scale-105 text-base sm:text-lg tracking-wide"
           >
-            📄 Download Professional Report (PDF)
+            📄 Download Intelligence Report (PDF)
           </button>
         </div>
 
