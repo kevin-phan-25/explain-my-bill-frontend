@@ -1,6 +1,5 @@
 import React from "react";
 import PaidFeatures from "./PaidFeatures";
-import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 
 // Regex patterns for highlighting
