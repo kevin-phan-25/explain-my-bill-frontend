@@ -1,83 +1,69 @@
+// src/api/billApi.js (or wherever it lives)
+
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
 // Upload a bill to your worker
-export async function uploadBillToAPI(file) {
+export async function uploadBillToAPI(file, sessionId = null) {
   const formData = new FormData();
   formData.append("bill", file);
+  
+  if (sessionId) {
+    formData.append("sessionId", sessionId);
+  }
 
+  // Only add X-Dev-Bypass when running on localhost
   const headers = {};
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname.includes("onrender.com")
-  ) {
-    headers["X-Dev-Bypass"] = "true"; // developer free bypass
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    headers["X-Dev-Bypass"] = "true"; // Free full access only during local dev
   }
 
   try {
     const res = await fetch(WORKER_URL, {
       method: "POST",
-      headers,
+      mode: "cors",
+      headers, // Only includes X-Dev-Bypass on localhost
       body: formData,
     });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Worker responded with ${res.status}`);
+      throw new Error(errorData.error || `Server error: ${res.status}`);
     }
 
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.error("uploadBillToAPI: Error", err);
-    throw new Error(
-      "Could not upload bill. Check your internet connection or try again later."
-    );
+    throw new Error("Failed to upload bill. Check your connection and try again.");
   }
 }
 
-// Explain a bill (already existing)
-export async function explainBill(formData) {
-  const headers = {};
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname.includes("onrender.com")
-  ) {
-    headers["X-Dev-Bypass"] = "true"; // developer free bypass
-  }
-
-  try {
-    const res = await fetch(WORKER_URL, { method: "POST", headers, body: formData });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Worker responded with ${res.status}`);
-    }
-
-    return res.json();
-  } catch (err) {
-    console.error("explainBill: Error", err);
-    throw new Error(
-      "Could not connect to backend. Please check your internet connection or try again later."
-    );
-  }
-}
+// Reuse for explainBill
+export const explainBill = uploadBillToAPI;
 
 // Stripe checkout session
 export async function createCheckoutSession(plan) {
+  if (!["one-time", "monthly"].includes(plan)) {
+    throw new Error("Invalid plan");
+  }
+
   try {
     const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ plan }),
     });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Payment endpoint responded with ${res.status}`);
+      throw new Error(errorData.error || `Payment failed: ${res.status}`);
     }
 
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.error("createCheckoutSession: Error", err);
-    throw new Error("Could not initiate payment. Try again later.");
+    throw new Error("Could not start payment. Please try again.");
   }
 }
