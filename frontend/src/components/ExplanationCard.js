@@ -39,7 +39,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // ULTRA-MODERN PDF EXPORT (unchanged from previous futuristic version)
+  // ULTRA-MODERN PDF EXPORT (unchanged)
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -255,7 +255,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Dual AI Powered</p>
         </div>
 
-        {/* Key Metrics – Numbers now fit perfectly */}
+        {/* Key Metrics – Fixed number fitting */}
         {mainData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 sm:mb-10">
             {[
@@ -268,7 +268,9 @@ export default function ExplanationCard({ result, onUpgrade }) {
                 key={i}
                 className="relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-xl bg-white/10 border border-white/30 shadow-xl hover:shadow-cyan-500/50 transition-all duration-400 hover:scale-105"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${i < 3 ? ['from-red-600 to-orange-600', 'from-green-600 to-emerald-600', 'from-amber-600 to-yellow-600'][i] : 'from-cyan-600 to-blue-600'} opacity-70`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${i < 3 
+                  ? ['from-red-600 to-orange-600', 'from-green-600 to-emerald-600', 'from-amber-600 to-yellow-600'][i] 
+                  : 'from-cyan-600 to-blue-600'} opacity-70`} />
                 <div className="relative p-0.5">
                   <div className="bg-white/10 backdrop-blur rounded-t-xl sm:rounded-t-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center">
                     <p className="text-white/80 text-xs sm:text-xs font-semibold tracking-wide">{item.label}</p>
@@ -276,7 +278,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
                   </div>
                 </div>
                 <div className="relative px-3 sm:px-5 py-5 sm:py-7 text-center">
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-words hyphenate">
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-words">
                     {item.value}
                   </p>
                 </div>
@@ -351,7 +353,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
             </div>
           )}
 
-          {/* Recommended Next Steps – Now uses real backend data */}
+          {/* Recommended Next Steps – Real backend data */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("nextsteps")}
@@ -381,7 +383,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
                   ))}
                 </ol>
 
-                {/* Upgrade prompt for free users if no custom steps */}
                 {!isPaid && (!mainData?.nextSteps || mainData.nextSteps.length === 0) && (
                   <p className="mt-6 text-center text-white/70 text-sm">
                     Upgrade for personalized, bill-specific next steps and appeal tools.
@@ -428,9 +429,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
         }
         .break-words {
           word-break: break-all;
-        }
-        .hyphenate {
-          hyphens: auto;
         }
       `}</style>
     </div>
