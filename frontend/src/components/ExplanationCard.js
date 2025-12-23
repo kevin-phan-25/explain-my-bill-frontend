@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import jsPDF from "jspdf";
 
 export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
-  // Move all hooks to the top — fixes the ESLint error
   const [openSections, setOpenSections] = useState(["summary"]);
 
-  // Early return AFTER hooks
   if (!result) return null;
 
   const { explanation, pages = [], isPaid } = result;
 
-  // Parse structured data from backend
+  // Parse structured data
   const structuredPages = pages
     .map((p) => {
       try {
@@ -30,11 +28,117 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
     );
   };
 
+  // Professional PDF Generation
   const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    const text = explanation || "Medical Bill Explanation";
-    doc.text(text, 15, 15);
-    doc.save("Medical_Bill_Explanation.pdf");
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let y = 30;
+
+    // Header
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 40, 120);
+    doc.text("Your Medical Bill Review", margin, y);
+    y += 12;
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Generated on ${new Date().toLocaleDateString()} • AI-Powered Analysis`, margin, y);
+    y += 15;
+
+    // Key Amounts Section
+    if (mainData?.keyAmounts) {
+      doc.setFontSize(16);
+      doc.setTextColor(30, 30, 80);
+      doc.text("Key Financial Summary", margin, y);
+      y += 10;
+
+      const amounts = [
+        { label: "Total Charges", value: mainData.keyAmounts.totalCharges || "Not specified" },
+        { label: "Insurance Paid", value: mainData.keyAmounts.insurancePaid || "Not specified" },
+        { label: "Insurance Adjusted", value: mainData.keyAmounts.insuranceAdjusted || "Not specified" },
+        { label: "Patient Responsibility", value: mainData.keyAmounts.patientResponsibility || "Not specified" },
+      ];
+
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      amounts.forEach((item) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${item.label}:`, margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(item.value, margin + 70, y);
+        y += 10;
+      });
+      y += 8;
+    }
+
+    // Services
+    if (mainData?.services?.length > 0) {
+      doc.setFontSize(16);
+      doc.setTextColor(30, 30, 80);
+      doc.text("Services Provided", margin, y);
+      y += 10;
+
+      doc.setFontSize(11);
+      mainData.services.forEach((service) => {
+        doc.text(`• ${service}`, margin + 5, y);
+        y += 8;
+      });
+      y += 8;
+    }
+
+    // Summary & Full Explanation
+    if (mainData?.summary) {
+      doc.setFontSize(16);
+      doc.setTextColor(30, 30, 80);
+      doc.text("Summary", margin, y);
+      y += 10;
+      doc.setFontSize(12);
+      doc.setTextColor(50);
+      const summaryLines = doc.splitTextToSize(mainData.summary, pageWidth - 2 * margin);
+      doc.text(summaryLines, margin, y);
+      y += summaryLines.length * 7 + 10;
+    }
+
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 80);
+    doc.text("Detailed Explanation", margin, y);
+    y += 10;
+
+    const explanationText = mainData?.explanation || explanation || "No detailed explanation available.";
+    const lines = doc.splitTextToSize(explanationText, pageWidth - 2 * margin);
+    doc.setFontSize(11);
+    doc.setTextColor(70);
+    doc.text(lines, margin, y);
+    y += lines.length * 6 + 15;
+
+    // Next Steps
+    doc.setFontSize(16);
+    doc.setTextColor(30, 30, 80);
+    doc.text("Recommended Next Steps", margin, y);
+    y += 10;
+
+    const steps = hasStructured ? mainData.nextSteps : [
+      "Request a detailed itemized bill from your provider",
+      "Compare charges on FairHealthConsumer.org",
+      "Call your insurance using the claim number",
+      "Appeal anything that looks wrong — many succeed!"
+    ];
+
+    doc.setFontSize(11);
+    steps.forEach((step, i) => {
+      doc.text(`${i + 1}. ${step}`, margin + 5, y);
+      y += 8;
+    });
+
+    // Footer
+    y += 15;
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text("This report is for informational purposes only. Always verify with your provider and insurer.", margin, y);
+
+    doc.save("Medical_Bill_Review_Report.pdf");
   };
 
   return (
@@ -42,32 +146,33 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
       <div className="max-w-5xl mx-auto">
         {/* Hero Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
-            🔍 Your Medical Bill Review
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight flex items-center justify-center gap-4">
+            <span className="text-5xl">🔍</span> Your Medical Bill Review
           </h1>
-          <p className="text-lg md:text-xl text-white/80">AI-powered • Clear • Actionable</p>
+          <p className="text-lg md:text-xl text-white/80">Clear • Actionable • AI-Powered</p>
         </div>
 
-        {/* Key Metrics Grid */}
+        {/* Key Metrics Grid - FIXED: Larger cards, better text sizing */}
         {mainData && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
-              { label: "Total Charges", value: mainData.keyAmounts?.totalCharges || "N/A", gradient: "from-red-500 to-orange-500" },
-              { label: "Insurance Paid", value: mainData.keyAmounts?.insurancePaid || "N/A", gradient: "from-green-500 to-emerald-500" },
-              { label: "You Owe", value: mainData.keyAmounts?.patientResponsibility || "N/A", gradient: "from-yellow-500 to-amber-500" },
-              { label: "Potential Savings", value: isPaid ? "Estimated soon" : "???", gradient: "from-blue-500 to-cyan-500" },
+              { label: "Total Charges", value: mainData.keyAmounts?.totalCharges || "N/A", gradient: "from-red-600 to-orange-600" },
+              { label: "Insurance Paid", value: mainData.keyAmounts?.insurancePaid || "N/A", gradient: "from-green-600 to-emerald-600" },
+              { label: "You Owe", value: mainData.keyAmounts?.patientResponsibility || "N/A", gradient: "from-amber-600 to-yellow-600" },
+              { label: "Potential Savings", value: isPaid ? "Estimate soon" : "???", gradient: "from-cyan-600 to-blue-600" },
             ].map((item, i) => (
               <div
                 key={i}
-                className="relative overflow-hidden rounded-2xl backdrop-blur-xl bg-white/10 border border-white/20 shadow-2xl hover:shadow-cyan-500/50 transition-all duration-500 hover:scale-105"
+                className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/10 border border-white/30 shadow-2xl hover:shadow-2xl hover:shadow-cyan-500/60 transition-all duration-500 hover:scale-105"
               >
-                <div className={`bg-gradient-to-r ${item.gradient} p-1 rounded-t-2xl`}>
-                  <div className="bg-black/40 rounded-t-2xl px-6 py-3">
-                    <p className="text-white/70 text-sm font-medium">{item.label}</p>
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-70`} />
+                <div className="relative p-1">
+                  <div className="bg-white/10 backdrop-blur rounded-t-3xl px-6 py-3">
+                    <p className="text-white/80 text-sm font-semibold tracking-wide">{item.label}</p>
                   </div>
                 </div>
-                <div className="p-8 text-center">
-                  <p className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg glow">
+                <div className="relative px-6 py-10 text-center">
+                  <p className="text-3xl sm:text-4xl lg:text-4xl font-extrabold text-white drop-shadow-2xl glow">
                     {item.value}
                   </p>
                 </div>
@@ -95,19 +200,19 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
               <div className="px-8 pb-8 text-white/90 text-lg leading-relaxed">
                 {hasStructured ? (
                   <>
-                    <p className="mb-6">{mainData.summary}</p>
+                    <p className="mb-6 font-medium">{mainData.summary}</p>
                     {mainData.services?.length > 0 && (
                       <div className="flex flex-wrap gap-3 mb-6">
                         {mainData.services.map((s, i) => (
-                          <span key={i} className="px-4 py-2 bg-white/20 rounded-full text-sm">
+                          <span key={i} className="px-5 py-3 bg-white/20 rounded-full text-sm font-medium border border-white/30">
                             {s}
                           </span>
                         ))}
                       </div>
                     )}
-                    <div className="prose prose-invert max-w-none">
+                    <div className="prose prose-invert max-w-none text-white/90">
                       {mainData.explanation.split("\n").map((para, i) => (
-                        <p key={i} className="mb-4">{para}</p>
+                        <p key={i} className="mb-4">{para || <br />}</p>
                       ))}
                     </div>
                   </>
@@ -118,7 +223,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
             )}
           </div>
 
-          {/* Red Flags - Paid only */}
+          {/* Red Flags */}
           {isPaid && mainData?.redFlags?.length > 0 && (
             <div className="rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
               <button
@@ -180,20 +285,20 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
           </div>
         </div>
 
-        {/* Download Button */}
-        <div className="text-center my-12">
+        {/* Professional Download Button */}
+        <div className="text-center my-16">
           <button
             onClick={handleDownloadPDF}
-            className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold py-5 px-12 rounded-2xl shadow-2xl hover:shadow-cyan-500/60 transition-all hover:scale-105 text-xl"
+            className="bg-gradient-to-r from-cyan-600 to-purple-700 text-white font-bold py-6 px-16 rounded-3xl shadow-2xl hover:shadow-cyan-500/70 transition-all hover:scale-105 text-2xl tracking-wide"
           >
-            Download Full Report as PDF
+            📄 Download Professional Report (PDF)
           </button>
         </div>
 
-        {/* Upgrade CTA for free users */}
+        {/* Upgrade CTA */}
         {!isPaid && (
           <div className="mt-16 text-center">
-            <div className="rounded-3xl backdrop-blur-xl bg-gradient-to-r from-red-600/30 to-orange-600/30 border border-red-500/40 p-10 max-w-4xl mx-auto">
+            <div className="rounded-3xl backdrop-blur-xl bg-gradient-to-r from-red-600/30 to-orange-600/30 border border-red-500/40 p-12 max-w-4xl mx-auto">
               <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
                 Unlock Expert Review & Appeal Tools
               </h3>
@@ -214,7 +319,7 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
 
       <style jsx>{`
         .glow {
-          text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+          text-shadow: 0 0 40px rgba(0, 255, 255, 0.9);
         }
       `}</style>
     </div>
