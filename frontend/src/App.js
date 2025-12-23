@@ -36,7 +36,7 @@ function App() {
   const sampleBills = [
     {
       name: "Routine Check-Up (Normal)",
-      image: "https://www.devry.edu/blog/examples/_jcr_content/root/container/structured_container_161844580/content-col-1/container/image_copy_copy_copy.coreimg.jpeg/1753935319005/pic-medical-coding-example-1.jpeg",
+      image: "https://preview.redd.it/price-of-a-5-minute-ambulance-ride-to-the-hospital-v0-oxv3y6pn755e1.jpeg?width=640&crop=smart&auto=webp&s=8b20faddcc24a66b12e2972dae849e4ac4400bb4",
       type: 'routine'
     },
     {
@@ -273,7 +273,7 @@ function App() {
           <a 
             href="https://www.fairhealthconsumer.org" 
             target="_blank" 
-            rel="noopener"
+            rel="noopener noreferrer"
             className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl text-lg shadow-lg"
           >
             Visit FairHealthConsumer.org →
