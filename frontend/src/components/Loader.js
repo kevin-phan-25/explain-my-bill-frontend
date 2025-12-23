@@ -1,3 +1,4 @@
+// src/components/Loader.js
 import React from 'react';
 
 export default function Loader() {
