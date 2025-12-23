@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import jsPDF from "jspdf";
 
 export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
+  // Move all hooks to the top — fixes the ESLint error
+  const [openSections, setOpenSections] = useState(["summary"]);
+
+  // Early return AFTER hooks
   if (!result) return null;
 
   const { explanation, pages = [], isPaid } = result;
-  const [openSections, setOpenSections] = useState(["summary"]);
 
-  // Try to parse structured data (from new backend)
+  // Parse structured data from backend
   const structuredPages = pages
     .map((p) => {
       try {
@@ -102,7 +105,11 @@ export default function ExplanationCard({ result, onUpgrade, onUseSample }) {
                         ))}
                       </div>
                     )}
-                    <div className="prose prose-invert max-w-none">{mainData.explanation}</div>
+                    <div className="prose prose-invert max-w-none">
+                      {mainData.explanation.split("\n").map((para, i) => (
+                        <p key={i} className="mb-4">{para}</p>
+                      ))}
+                    </div>
                   </>
                 ) : (
                   <p>{explanation || "Loading your bill analysis..."}</p>
