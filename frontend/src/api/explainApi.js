@@ -1,37 +1,47 @@
-// src/api/explainApi.js
-const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev"; // Replace with your actual worker URL
+const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
 export async function explainBill(formData) {
   const headers = {};
-  if (window.location.hostname === 'localhost' || window.location.hostname.includes('onrender.com')) {
-    headers["X-Dev-Bypass"] = "true"; // Developer bypass for full access
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname.includes("onrender.com")
+  ) {
+    headers["X-Dev-Bypass"] = "true"; // developer free bypass
   }
 
-  const res = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: headers,
-    body: formData,
-  });
+  try {
+    const res = await fetch(WORKER_URL, { method: "POST", headers, body: formData });
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || "Failed to analyze bill");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Worker responded with ${res.status}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    console.error("Error calling Worker:", err);
+    throw new Error(
+      "Could not connect to backend. Please check your internet connection or try again later."
+    );
   }
-
-  return res.json();
 }
 
 export async function createCheckoutSession(plan) {
-  const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan }),
-  });
+  try {
+    const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan }),
+    });
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error || "Payment failed");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Payment endpoint responded with ${res.status}`);
+    }
+
+    return res.json();
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    throw new Error("Could not initiate payment. Try again later.");
   }
-
-  return res.json();
 }
