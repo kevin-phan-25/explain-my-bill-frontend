@@ -1,3 +1,4 @@
+// src/components/PaidFeatures.js
 import React from "react";
 import { motion } from "framer-motion";
 
@@ -9,17 +10,20 @@ export default function PaidFeatures({ features }) {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  const cardHover = { scale: 1.03 };
+
   return (
-    <div className="mt-12 space-y-10">
+    <div className="mt-12 space-y-10 px-4 md:px-0">
       <h3 className="text-4xl font-bold text-center text-blue-900 mb-10">
         Premium Insights Just for You
       </h3>
 
       {features.cptExplanations?.length > 0 && (
         <motion.div
-          className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 shadow-xl"
+          className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
           initial="hidden"
           animate="visible"
+          whileHover={cardHover}
           variants={cardVariants}
         >
           <h4 className="text-2xl font-bold text-purple-800 mb-4 flex items-center">
@@ -35,9 +39,10 @@ export default function PaidFeatures({ features }) {
 
       {features.redFlags?.length > 0 && (
         <motion.div
-          className="bg-red-50 border-l-8 border-red-600 rounded-2xl p-8 shadow-xl"
+          className="bg-red-50 border-l-8 border-red-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
           initial="hidden"
           animate="visible"
+          whileHover={cardHover}
           variants={cardVariants}
         >
           <h4 className="text-2xl font-bold text-red-800 mb-4 flex items-center">
@@ -53,9 +58,10 @@ export default function PaidFeatures({ features }) {
 
       {features.estimatedSavings && (
         <motion.div
-          className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 shadow-xl"
+          className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
           initial="hidden"
           animate="visible"
+          whileHover={cardHover}
           variants={cardVariants}
         >
           <h4 className="text-2xl font-bold text-green-800 mb-4 flex items-center">
@@ -65,16 +71,17 @@ export default function PaidFeatures({ features }) {
             {features.estimatedSavings.potentialSavings || "$200–$800"}
           </p>
           <p className="text-lg text-green-700 mt-3">
-            {features.estimatedSavings.reason || "Common overcharges on office visits, labs, and imaging"}
+            {features.estimatedSavings.reason || "Common overcharges on office visits, labs, and imaging."}
           </p>
         </motion.div>
       )}
 
       {features.appealLetter && (
         <motion.div
-          className="bg-indigo-50 border-l-8 border-indigo-600 rounded-2xl p-8 shadow-xl"
+          className="bg-indigo-50 border-l-8 border-indigo-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
           initial="hidden"
           animate="visible"
+          whileHover={cardHover}
           variants={cardVariants}
         >
           <h4 className="text-2xl font-bold text-indigo-800 mb-4 flex items-center">
@@ -88,9 +95,10 @@ export default function PaidFeatures({ features }) {
 
       {features.customAdvice && (
         <motion.div
-          className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl text-center"
+          className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl text-center hover:shadow-2xl transition"
           initial="hidden"
           animate="visible"
+          whileHover={cardHover}
           variants={cardVariants}
         >
           <h4 className="text-2xl font-bold text-blue-800 mb-4 flex items-center justify-center">
