@@ -1,275 +1,159 @@
-// worker/src/index.js
-// ExplainMyBill Worker – Final Clean Version
-// Google Vision OCR + OpenAI Explanation + Stripe
-// Low-maintenance, high-value
+import React, { useState } from 'react';
+import { explainBill } from '../api/explainApi';
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+export default function BillUploader({ onResult, onLoading }) {
+  const [file, setFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [compressing, setCompressing] = useState(false);
 
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
+  const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    // -------------------
-    // 1️⃣ Stripe Checkout
-    // -------------------
-    if (url.pathname === "/create-checkout-session" && request.method === "POST") {
-      try {
-        const { plan } = await request.json();
-        if (!["monthly", "one-time"].includes(plan)) throw new Error("Invalid plan");
-
-        const priceId = plan === "monthly" ? "price_123monthly" : "price_123one";
-
-        const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            "payment_method_types[0]": "card",
-            "line_items[0][price]": priceId,
-            "line_items[0][quantity]": "1",
-            "mode": plan === "monthly" ? "subscription" : "payment",
-            success_url: "https://explain-my-bill-frontend.onrender.com/success?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url: "https://explain-my-bill-frontend.onrender.com/cancel",
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || "Payment failed");
-
-        return new Response(JSON.stringify({ id: data.id }), {
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      if (file.size <= MAX_FILE_SIZE || !file.type.startsWith('image/')) {
+        resolve(file);
+        return;
       }
-    }
 
-    // -------------------
-    // 2️⃣ Bill Processing
-    // -------------------
-    if (request.method === "POST") {
-      try {
-        const formData = await request.formData();
-        const billFile = formData.get("bill");
-        const sessionId = formData.get("sessionId") || url.searchParams.get("session_id");
+      const img = new Image();
+      const reader = new FileReader();
 
-        if (!billFile || billFile.size === 0) {
-          throw new Error("No bill uploaded");
-        }
+      reader.onload = (e) => {
+        img.src = e.target.result;
+      };
 
-        const devBypass = request.headers.get("X-Dev-Bypass") === "true" || env.DEV_MODE === "true";
-        const isPaid = Boolean(sessionId) || devBypass;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-        const buffer = await billFile.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const base64 = btoa(String.fromCharCode(...bytes));
-        const fileName = billFile.name.toLowerCase();
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 2000;
 
-        let pages = [];
-
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-          pages = await processExcel(buffer);
-        } else {
-          const key = env.GOOGLE_VISION_API_KEY;
-          if (!key) throw new Error("Google Vision key missing");
-
-          const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${key}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              requests: [{
-                image: { content: base64 },
-                features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
-              }],
-            }),
-          });
-
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error?.message || "OCR failed");
-
-          const fullText = data.responses[0]?.fullTextAnnotation?.text || "[No text extracted]";
-
-          const pageTexts = fullText.split(/\f/).map(t => t.trim()).filter(t => t.length > 0);
-          if (pageTexts.length === 0) pageTexts.push(fullText.trim());
-
-          pages = pageTexts.map((text, i) => ({
-            page: i + 1,
-            rawText: text || "[No text extracted]",
-          }));
-        }
-
-        // Generate explanations
-        for (let p of pages) {
-          let prompt = `You are an expert medical billing assistant.
-Explain the following page/section of a medical/dental bill. Include tables, CPT/ICD codes, charges, insurance adjustments, patient responsibility, totals, and simple explanations.
-
-Content:
-${p.rawText}
-
-`;
-
-          if (isPaid) {
-            prompt += `\n\nHighlight any red flags (high charges, denied claims, balance due) in ALL CAPS.
-Explain common CPT and ICD-10 codes in simple terms.
-Suggest next steps if something looks wrong.`;
-          } else {
-            prompt += "\n\nIMPORTANT: Provide ONLY a short teaser summary (under 150 words) and end with: 'Upgrade to get the full detailed explanation.'";
+        if (width > height) {
+          if (width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
           }
-
-          const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.5,
-              max_tokens: isPaid ? 1000 : 300,
-            }),
-          });
-
-          const aiData = await aiRes.json();
-          if (!aiRes.ok) throw new Error(`Explanation error: ${JSON.stringify(aiData)}`);
-
-          const explanation = aiData.choices?.[0]?.message?.content?.trim() || "No explanation generated.";
-          p.explanation = explanation;
-          p.snippet = explanation.substring(0, 200) + (explanation.length > 200 ? "..." : "");
+        } else {
+          if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
         }
 
-        const fullExplanation = pages.map(p => `Page ${p.page}:\n${p.explanation}`).join("\n\n");
+        canvas.width = width;
+        canvas.height = height;
 
-        // -------------------
-        // Paid-only features
-        // -------------------
-        let paidFeatures = {};
-        if (isPaid) {
-          paidFeatures = {
-            downloadablePdf: true,
-            redFlags: extractRedFlags(fullExplanation),
-            codeExplanations: extractCodes(fullExplanation),
-            costComparison: getCostComparison(fullExplanation),
-            estimatedSavings: calculateSavings(fullExplanation),
-            appealLetter: generateAppealLetter(fullExplanation),
-            insuranceLookup: getInsuranceLookup(fullExplanation),
-            customAdvice: generateCustomAdvice(fullExplanation),
-            savedHistory: true,
-            shareableLink: `https://explainmybill.com/share/${crypto.randomUUID().slice(0,8)}`,
-          };
-        }
+        ctx.drawImage(img, 0, 0, width, height);
 
-        return new Response(JSON.stringify({
-          isPaid,
-          pages,
-          explanation: fullExplanation, // Aligned for frontend
-          paidFeatures
-        }), {
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      } catch (err) {
-        console.error("Worker error:", err);
-        return new Response(JSON.stringify({ error: err.message || "Processing failed" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-    }
+        canvas.toBlob(
+          (blob) => {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type || 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          file.type || 'image/jpeg',
+          0.85
+        );
+      };
 
-    return new Response("ExplainMyBill Worker API – POST a bill file to get an explanation.", {
-      headers: corsHeaders,
+      reader.readAsDataURL(file);
     });
-  },
-};
-
-// Helper functions (preserved and expanded)
-async function processExcel(arrayBuffer) {
-  const XLSX = await import("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
-  const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-
-  let pages = [];
-  let pageIndex = 1;
-
-  workbook.SheetNames.forEach(sheetName => {
-    const worksheet = workbook.Sheets[sheetName];
-    const csv = XLSX.utils.sheet_to_csv(worksheet);
-    pages.push({ page: pageIndex, rawText: csv || "[Empty sheet]" });
-    pageIndex++;
-  });
-
-  return pages;
-}
-
-function extractRedFlags(text) {
-  const flags = [];
-  if (text.match(/DENIED|REJECTED|NOT COVERED/i)) flags.push("Possible denied claim");
-  if (text.match(/BALANCE DUE|PATIENT RESPONSIBILITY/i)) flags.push("You may owe money");
-  if (text.match(/HIGH CHARGE|UNUSUAL/i)) flags.push("Unusually high charge");
-  return flags;
-}
-
-function extractCodes(text) {
-  const cpt = text.match(/CPT[:\s]*(\d{5})/gi) || [];
-  const icd = text.match(/ICD-10[:\s]*([A-Z]\d{2,6}(\.\d{1,2})?)/gi) || [];
-  return { cpt, icd };
-}
-
-function getCostComparison(text) {
-  return {
-    averageCost: "$150 (national average for common visits)",
-    yourCharge: text.match(/Total[:\s]*\$?([\d,]+\.?\d*)/i)?.[1] || "Unknown",
-    note: "Compare your charge to fairhealthconsumer.org"
-  };
-}
-
-function calculateSavings(text) {
-  return {
-    potentialSavings: "$200–$800",
-    reason: "Common overcharges on office visits, labs, and imaging"
-  };
-}
-
-function getInsuranceLookup(text) {
-  const insurers = {
-    "Blue Cross": "Often covers 80% after deductible",
-    "UnitedHealthcare": "Check for in-network providers",
-    "Aetna": "Pre-authorization required for many procedures",
-    "Medicare": "Part B covers 80% of approved amounts",
   };
 
-  for (const [name, note] of Object.entries(insurers)) {
-    if (text.includes(name)) return { insurer: name, coverageNote: note };
-  }
+  const handleFileSelect = async (selectedFile) => {
+    if (!selectedFile) return;
+    setError('');
+    setCompressing(true);
 
-  return { insurer: "Unknown", coverageNote: "Contact your insurer for policy details" };
-}
+    try {
+      const processedFile = await compressImage(selectedFile);
 
-function generateAppealLetter(explanation) {
-  return `Dear Insurance Provider,
+      if (processedFile.size > MAX_FILE_SIZE) {
+        setError("File too large after compression. Use PDF or smaller image.");
+        setFile(null);
+      } else setFile(processedFile);
+    } catch (err) {
+      setError("Failed to process file. Try a different one.");
+      setFile(null);
+    } finally {
+      setCompressing(false);
+    }
+  };
 
-I am appealing the denial/rejection of claim #XXX for services on [date].
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) return;
 
-The explanation of benefits cited [reason], but these services were medically necessary.
+    setLoading(true);
+    setError('');
+    onLoading(true);
 
-Please review the attached explanation and reconsider coverage.
+    const formData = new FormData();
+    formData.append("bill", file);
 
-Thank you,
-[Your Name]`;
-}
+    try {
+      const data = await explainBill(formData);
+      onResult(data);
+    } catch (err) {
+      setError(err.message || "Failed to analyze bill. Try again.");
+    } finally {
+      setLoading(false);
+      onLoading(false);
+    }
+  };
 
-function generateCustomAdvice(explanation) {
-  return "Next steps: Contact your provider for itemized bill. Call insurance with CPT codes. Check fairhealthconsumer.org for average costs in your area.";
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div
+        className={`border-4 border-dashed rounded-lg p-4 text-center transition-all ${
+          dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-400'
+        } ${loading || compressing ? 'opacity-70' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+        }}
+      >
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          onChange={(e) => handleFileSelect(e.target.files[0])}
+          className="hidden"
+          id="bill-upload"
+        />
+        <label htmlFor="bill-upload" className="cursor-pointer block">
+          <div className="text-4xl mb-2 text-blue-600">📄</div>
+          <p className="text-base font-bold text-gray-800 mb-1">
+            {compressing ? "Compressing..." : loading ? "Analyzing..." : "Drop or click to upload"}
+          </p>
+          <p className="text-xs text-gray-600">PDF or image • Max 8MB</p>
+          {file && <p className="mt-2 text-sm text-green-600 font-bold">{file.name} ({(file.size/1024/1024).toFixed(1)} MB)</p>}
+        </label>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4 text-red-700 text-center">
+          <p className="font-medium">{error}</p>
+        </div>
+      )}
+
+      <div className="text-center">
+        <button
+          type="submit"
+          disabled={!file || loading || compressing}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition hover:scale-105"
+        >
+          {compressing ? "Preparing..." : loading ? "Processing..." : "Explain My Bill"}
+        </button>
+      </div>
+    </form>
+  );
 }
