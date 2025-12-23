@@ -6,7 +6,7 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Test mode
+const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Replace with your actual test key
 
 function App() {
   const [result, setResult] = useState(null);
@@ -14,10 +14,11 @@ function App() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleResult = (data) => {
+    // Force full paid experience for samples and dev mode
     const isDev = window.location.hostname === 'localhost' || 
                   window.location.hostname.includes('onrender.com');
 
-    if (isDev) {
+    if (isDev || data.isPaid) {
       data.isPaid = true;
       setShowUpgrade(false);
     } else if (!data.isPaid) {
@@ -32,152 +33,261 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // Sample bill images
+  // === REALISTIC SAMPLE BILLS WITH FULL STRUCTURED DATA ===
   const sampleBills = [
     {
       name: "Routine Check-Up (Normal)",
-      image: "https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg",
-      type: 'routine'
+      type: 'routine',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "This is a routine preventive visit with no major issues.",
+            keyAmounts: {
+              totalCharges: "$195.00",
+              insuranceAdjusted: "$39.00",
+              insurancePaid: "$117.00",
+              patientResponsibility: "$39.00"
+            },
+            confidences: {
+              totalCharges: 95,
+              insurancePaid: 98,
+              patientResponsibility: 97
+            },
+            services: ["Office Visit (99214)", "Blood Pressure Check", "Preventive Counseling"],
+            redFlags: [],
+            explanation: "This bill is for a standard annual check-up. Your insurance covered most of the cost as preventive care. The remaining $39 is your standard copay for an established patient visit. Everything appears correct and reasonable.",
+            nextSteps: [
+              "Pay the $39 balance",
+              "Schedule your next annual visit",
+              "No further action needed"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Emergency Room (High Charge)",
-      image: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg",
-      type: 'er'
+      type: 'er',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "High-cost ER visit with potentially inflated facility fees.",
+            keyAmounts: {
+              totalCharges: "$4,200.00",
+              insuranceAdjusted: "$1,800.00",
+              insurancePaid: "$1,800.00",
+              patientResponsibility: "$600.00"
+            },
+            confidences: {
+              totalCharges: 92,
+              insurancePaid: 88,
+              patientResponsibility: 90
+            },
+            services: ["Emergency Room Visit (99285)", "IV Fluids", "Blood Tests", "X-Ray"],
+            redFlags: [
+              "Facility fee significantly higher than national average",
+              "Level 5 ER code used — often overcoded",
+              "Potential surprise billing risk"
+            ],
+            explanation: "This is a very expensive ER bill. The facility charged $4,200 for what appears to be a moderate visit. Insurance negotiated down to $2,400 but you're still responsible for $600. ER bills like this are frequently reduced through negotiation or appeal.",
+            nextSteps: [
+              "Request a detailed itemized bill",
+              "Compare charges at FairHealthConsumer.org (search your ZIP code)",
+              "Call the hospital billing department to negotiate",
+              "Submit an appeal to your insurance if denied services",
+              "Consider No Surprises Act protection if out-of-network"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Denied Lab Tests",
-      image: "https://publicinterestnetwork.org/wp-content/uploads/2025/09/EOB-with-one-charge-denied-388.54.jpg",
-      type: 'denied'
+      type: 'denied',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "Multiple lab tests denied as 'not medically necessary'.",
+            keyAmounts: {
+              totalCharges: "$265.00",
+              insuranceAdjusted: "$0.00",
+              insurancePaid: "$0.00",
+              patientResponsibility: "$265.00"
+            },
+            confidences: {
+              totalCharges: 96,
+              insurancePaid: 100,
+              patientResponsibility: 98
+            },
+            services: ["Comprehensive Metabolic Panel (80053)", "Complete Blood Count (85025)"],
+            redFlags: [
+              "Full denial of standard labs",
+              "Denials for routine bloodwork often overturned on appeal",
+              "Missing pre-authorization documentation"
+            ],
+            explanation: "Your insurance denied these standard blood tests, leaving you responsible for the full amount. This is common but frequently reversible with proper documentation from your doctor.",
+            nextSteps: [
+              "Contact your doctor's office for a letter of medical necessity",
+              "Submit a formal appeal to your insurance within 180 days",
+              "Reference diagnosis codes from your visit",
+              "Request peer-to-peer review if needed"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Surprise Ambulance Bill",
-      image: "https://armandalegshow.com/wp-content/uploads/2023/07/S10_EP01_No-Surprises-Update.png",
-      type: 'ambulance'
+      type: 'ambulance',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "High-cost ambulance transport with limited insurance coverage.",
+            keyAmounts: {
+              totalCharges: "$1,800.00",
+              insuranceAdjusted: "$1,000.00",
+              insurancePaid: "$400.00",
+              patientResponsibility: "$1,400.00"
+            },
+            confidences: {
+              totalCharges: 94,
+              insurancePaid: 85,
+              patientResponsibility: 92
+            },
+            services: ["Basic Life Support Ambulance (A0429)", "Mileage Charge (A0425)"],
+            redFlags: [
+              "Surprise out-of-network ambulance billing",
+              "High mileage charges",
+              "Limited insurance coverage for ground transport"
+            ],
+            explanation: "Ambulance services are frequently out-of-network and result in surprise bills. Your insurance paid only a portion, leaving you with a large balance. Federal and state protections may apply.",
+            nextSteps: [
+              "Check if this qualifies under the No Surprises Act",
+              "Request itemized breakdown of mileage and services",
+              "Contact ambulance company to negotiate",
+              "File complaint with your state insurance commissioner if needed"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Out-of-Network Specialist",
-      image: "https://aarp.widen.net/content/4acvqv0fvj/web/medical-bill-errors.gif?animate=true&u=1javjt",
-      type: 'out_network'
+      type: 'out_network',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "Out-of-network provider with high balance billing.",
+            keyAmounts: {
+              totalCharges: "$650.00",
+              insuranceAdjusted: "$500.00",
+              insurancePaid: "$120.00",
+              patientResponsibility: "$530.00"
+            },
+            confidences: {
+              totalCharges: 93,
+              insurancePaid: 87,
+              patientResponsibility: 91
+            },
+            services: ["New Patient Office Visit (99204)"],
+            redFlags: [
+              "Significant balance billing",
+              "Out-of-network provider",
+              "Possible gap exception available"
+            ],
+            explanation: "You saw a specialist outside your insurance network, resulting in limited coverage and high out-of-pocket cost. Many insurers offer 'gap exceptions' for necessary out-of-network care.",
+            nextSteps: [
+              "Request a 'gap exception' or in-network rate adjustment",
+              "Ask provider if they participate in any surprise billing protections",
+              "Submit appeal with documentation of medical necessity",
+              "Negotiate directly with provider billing office"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Dental Cleaning + X-Ray",
-      image: "https://cdn.prod.website-files.com/609d5d3c4d120e9c52e52b07/66a3b84f583a65df61c0cd0c_Open%20Graph%20Template%20Dental-2.png",
-      type: 'dental'
+      type: 'dental',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "Routine dental cleaning with full preventive coverage.",
+            keyAmounts: {
+              totalCharges: "$270.00",
+              insuranceAdjusted: "$90.00",
+              insurancePaid: "$180.00",
+              patientResponsibility: "$90.00"
+            },
+            confidences: {
+              totalCharges: 96,
+              insurancePaid: 95,
+              patientResponsibility: 97
+            },
+            services: ["Adult Prophylaxis (D1110)", "Full Mouth X-Rays (D0210)", "Comprehensive Exam (D0150)"],
+            redFlags: [],
+            explanation: "Standard preventive dental visit. Your insurance covered cleanings and exam at 100%, with X-rays at 80%. The remaining $90 is typical for annual X-rays not fully covered.",
+            nextSteps: [
+              "Pay the $90 balance",
+              "Schedule cleaning for other family members",
+              "Check remaining annual maximum"
+            ]
+          }
+        }]
+      }
     },
     {
       name: "Eye Exam & Glasses (Vision)",
-      image: "https://www.nvisioncenters.com/wp-content/uploads/eye-prescription-glasses.jpg",
-      type: 'vision'
+      type: 'vision',
+      data: {
+        isPaid: true,
+        pages: [{
+          structured: {
+            summary: "Routine vision exam with frame/lens allowance applied.",
+            keyAmounts: {
+              totalCharges: "$485.00",
+              insuranceAdjusted: "$200.00",
+              insurancePaid: "$150.00",
+              patientResponsibility: "$335.00"
+            },
+            confidences: {
+              totalCharges: 94,
+              insurancePaid: 90,
+              patientResponsibility: 93
+            },
+            services: ["Refraction (92015)", "Routine Eye Exam", "Frames & Lenses"],
+            redFlags: [],
+            explanation: "Vision insurance typically covers exam and provides an allowance for glasses. You received $150 toward frames/lenses. The remaining cost is for upgraded frames or lenses beyond allowance.",
+            nextSteps: [
+              "Pay remaining balance",
+              "Consider cheaper frames online next time",
+              "Check if contacts are covered alternatively"
+            ]
+          }
+        }]
+      }
     }
   ];
 
-  // Load sample bill data
+  // Load sample bill — now instantly shows full analysis
   const loadSampleFromImage = (type) => {
     setLoading(true);
-    setTimeout(() => {
-      let sampleData = {};
-
-      if (type === 'routine') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "This is a standard check-up bill. CPT code 99214. Charge: $195, insurance allowed $156, paid $117. You owe $39.",
-          features: {
-            redFlags: [],
-            cptExplanations: ["99214: Detailed exam for established patient"],
-            estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "Blue Cross", coverageNote: "Covers preventive care" },
-            appealLetter: "No appeal needed.",
-            customAdvice: "Pay the $39 balance."
-          }
-        };
-      } else if (type === 'er') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Emergency room visit. CPT 99285. Charge $4,200, insurance allowed $2,400, paid $1,800. You owe $600. RED FLAG: ER charges are often inflated.",
-          features: {
-            redFlags: ["Charge 2x national average"],
-            cptExplanations: ["99285: Most expensive ER code"],
-            estimatedSavings: { potentialSavings: "$1,000+" },
-            insuranceLookup: { insurer: "UnitedHealthcare", coverageNote: "Often negotiates ER" },
-            appealLetter: "Dear Insurance,\nThe $4,200 ER charge is excessive...",
-            customAdvice: "Request itemized bill. Use fairhealthconsumer.org to compare."
-          }
-        };
-      } else if (type === 'denied') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Lab tests denied. CPT 80053, 85025. Charge $265, denied as 'not medically necessary'. You owe full amount. RED FLAG: Denials often overturnable.",
-          features: {
-            redFlags: ["Full denial"],
-            cptExplanations: ["80053: Organ function panel", "85025: Blood count"],
-            estimatedSavings: { potentialSavings: "$265" },
-            insuranceLookup: { insurer: "Aetna", coverageNote: "Appeals succeed ~70%" },
-            appealLetter: "Dear Aetna,\nThese labs were medically necessary...",
-            customAdvice: "Get doctor's letter. Appeal within 180 days."
-          }
-        };
-      } else if (type === 'ambulance') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Ambulance transport. Base $1,800, insurance paid $400. You owe $1,400. RED FLAG: Surprise charge, check No Surprises Act.",
-          features: {
-            redFlags: ["Possible surprise billing"],
-            cptExplanations: ["A0429: Basic ambulance", "A0425: Mileage"],
-            estimatedSavings: { potentialSavings: "$800+" },
-            insuranceLookup: { insurer: "Cigna", coverageNote: "Check state protections" },
-            appealLetter: "Dear Cigna,\nThis was emergency transport...",
-            customAdvice: "Check 'No Surprises Act' protection."
-          }
-        };
-      } else if (type === 'out_network') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Out-of-network specialist. CPT 99204. Charge $650, insurance allowed $150, paid $120. You owe $530. RED FLAG: Can appeal for in-network rate.",
-          features: {
-            redFlags: ["Out-of-network charge"],
-            cptExplanations: ["99204: Detailed new patient visit"],
-            estimatedSavings: { potentialSavings: "$300+" },
-            insuranceLookup: { insurer: "Anthem", coverageNote: "May adjust rate" },
-            appealLetter: "Dear Anthem,\nProvider was out-of-network without notice...",
-            customAdvice: "Request 'gap exception'."
-          }
-        };
-      } else if (type === 'dental') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Dental cleaning & X-ray. D1110 $120, D0210 $85, D0150 $65. Total $270, insurance paid $180. You owe $90.",
-          features: {
-            redFlags: [],
-            cptExplanations: ["D1110: Adult cleaning", "D0210: Full X-rays", "D0150: Exam"],
-            estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "Delta Dental", coverageNote: "Covers cleanings 100%" },
-            appealLetter: "No appeal needed.",
-            customAdvice: "Check remaining benefits."
-          }
-        };
-      } else if (type === 'vision') {
-        sampleData = {
-          isPaid: true,
-          fullExplanation: "Vision exam & glasses. CPT 92015 refraction $85, S0620 exam $120, frames/lenses $280. Total $485, insurance paid $150. You owe $335.",
-          features: {
-            redFlags: [],
-            cptExplanations: ["92015: Vision test", "S0620: Routine eye exam"],
-            estimatedSavings: { potentialSavings: "$0" },
-            insuranceLookup: { insurer: "VSP", coverageNote: "Covers exam + allowance for glasses" },
-            appealLetter: "No appeal needed.",
-            customAdvice: "Shop for cheaper frames online."
-          }
-        };
-      }
-
-      handleResult(sampleData);
-      setLoading(false);
-    }, 1200);
-  };
-
-  // Handler for "Try Sample Bill" button in ExplanationCard
-  const handleUseSample = () => {
-    if (sampleBills.length > 0) loadSampleFromImage(sampleBills[0].type);
+    
+    // Find the matching sample
+    const sample = sampleBills.find(b => b.type === type);
+    if (sample) {
+      // Small delay for realism
+      setTimeout(() => {
+        handleResult(sample.data);
+        setLoading(false);
+      }, 800);
+    }
   };
 
   return (
@@ -203,7 +313,6 @@ function App() {
         </div>
       </div>
 
-      {/* Upload Area */}
       <main id="main-content" className="container mx-auto px-6 py-12 max-w-4xl">
         <div className="glass-card p-6 shadow-2xl">
           <h2 className="text-2xl font-bold text-center text-blue-900 mb-4">Upload Your Medical Bill</h2>
@@ -225,7 +334,7 @@ function App() {
               </button>
             </div>
 
-            <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} onUseSample={handleUseSample} />
+            <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
           </>
         )}
 
@@ -233,7 +342,7 @@ function App() {
         {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />}
       </main>
 
-      {/* Sample Bills */}
+      {/* Sample Bills Section */}
       <div className="container mx-auto px-6 mt-8">
         <h2 className="text-3xl font-bold text-center text-blue-900 mb-10">
           Or Try a Sample Bill Instantly
@@ -246,15 +355,13 @@ function App() {
                 className="block w-full transform hover:scale-105 transition duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300"
                 aria-label={`Analyze sample ${bill.name}`}
               >
-                <img 
-                  src={bill.image} 
-                  alt={`Sample ${bill.name} medical bill`}
-                  className="w-full rounded-2xl shadow-xl border-4 border-blue-200 hover:border-blue-600 transition max-h-72 object-contain bg-white"
-                />
+                <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-64 flex items-center justify-center text-gray-500 mb-4">
+                  <span className="text-6xl">📄</span>
+                </div>
                 <p className="mt-6 text-2xl font-bold text-blue-900">
                   {bill.name}
                 </p>
-                <p className="text-lg text-gray-600 mt-2">Click to get explanation</p>
+                <p className="text-lg text-gray-600 mt-2">Click to see full analysis</p>
               </button>
             </div>
           ))}
