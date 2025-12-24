@@ -1,4 +1,4 @@
-// src/api/billApi.js
+// src/api/billApi.js – Updated with better error handling for debugging
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -17,6 +17,9 @@ export async function uploadBillToAPI(file, sessionId = null) {
   }
 
   try {
+    console.log("Uploading to:", WORKER_URL);
+    console.log("File:", file.name, file.size, file.type);
+
     const res = await fetch(WORKER_URL, {
       method: "POST",
       mode: "cors",
@@ -24,22 +27,46 @@ export async function uploadBillToAPI(file, sessionId = null) {
       body: formData, // Let browser set Content-Type + boundary
     });
 
+    console.log("Response status:", res.status);
+    console.log("Response headers:", [...res.headers.entries()]);
+
+    // Always read response body for better errors
+    const responseText = await res.text();
+    console.log("Raw response body:", responseText);
+
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Upload failed: ${res.status}`);
+      let errorMsg = `Upload failed: HTTP ${res.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMsg = errorData.error || errorMsg;
+      } catch (e) {
+        // If not JSON, use the text (e.g., "ExplainMyBill Worker – Running")
+        errorMsg = responseText || errorMsg;
+      }
+      throw new Error(errorMsg.trim() || "Unknown server error");
     }
 
-    return await res.json();
+    // Try to parse JSON, but show raw if fails
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error("Response is not valid JSON:", responseText);
+      throw new Error("Server returned invalid data. Worker may not be processing uploads correctly.");
+    }
   } catch (err) {
     console.error("uploadBillToAPI error:", err);
-    throw new Error("Failed to upload bill. Check your connection and try again.");
+    // More specific message based on common issues
+    if (err.message.includes("ExplainMyBill Worker – Running")) {
+      throw new Error("Worker is running but not processing uploads. Redeploy the latest worker code.");
+    }
+    throw new Error(err.message || "Failed to upload bill. Check your connection and try again.");
   }
 }
 
 // Alias for consistency
 export const explainBill = uploadBillToAPI;
 
-// Stripe checkout
+// Stripe checkout (unchanged)
 export async function createCheckoutSession(plan) {
   if (!["one-time", "monthly"].includes(plan)) {
     throw new Error("Invalid plan");
