@@ -1,5 +1,7 @@
+// BillUploader.jsx – Minor improvement to error display
+
 import React, { useState } from 'react';
-import { uploadBillToAPI } from '../api/explainApi'; // ← Correct import
+import { uploadBillToAPI } from '../api/billApi'; // ← Correct import (updated to billApi.js)
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
@@ -66,7 +68,13 @@ export default function BillUploader({ onResult, onLoading }) {
         </label>
       </div>
 
-      {error && <p className="text-red-600 text-center text-sm font-medium">{error}</p>}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center">
+          <p className="font-bold">Upload Failed</p>
+          <p className="text-sm">{error}</p>
+          <p className="text-xs mt-2">Check browser console (F12) for more details.</p>
+        </div>
+      )}
 
       <div className="text-center">
         <button
