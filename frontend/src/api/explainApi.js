@@ -1,4 +1,4 @@
-// src/api/billApi.js – Updated with better error handling for debugging
+// src/api/explainApi.js – Full file (renamed back from billApi.js, with improved error handling)
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -40,25 +40,29 @@ export async function uploadBillToAPI(file, sessionId = null) {
         const errorData = JSON.parse(responseText);
         errorMsg = errorData.error || errorMsg;
       } catch (e) {
-        // If not JSON, use the text (e.g., "ExplainMyBill Worker – Running")
         errorMsg = responseText || errorMsg;
       }
       throw new Error(errorMsg.trim() || "Unknown server error");
     }
 
-    // Try to parse JSON, but show raw if fails
+    // Try to parse JSON
     try {
       return JSON.parse(responseText);
     } catch (e) {
       console.error("Response is not valid JSON:", responseText);
-      throw new Error("Server returned invalid data. Worker may not be processing uploads correctly.");
+      throw new Error("Server returned invalid data. Please redeploy the latest worker code.");
     }
   } catch (err) {
     console.error("uploadBillToAPI error:", err);
-    // More specific message based on common issues
+
+    if (err.message.includes("Maximum call stack size exceeded")) {
+      throw new Error("Maximum call stack size exceeded");
+    }
+
     if (err.message.includes("ExplainMyBill Worker – Running")) {
       throw new Error("Worker is running but not processing uploads. Redeploy the latest worker code.");
     }
+
     throw new Error(err.message || "Failed to upload bill. Check your connection and try again.");
   }
 }
@@ -66,7 +70,7 @@ export async function uploadBillToAPI(file, sessionId = null) {
 // Alias for consistency
 export const explainBill = uploadBillToAPI;
 
-// Stripe checkout (unchanged)
+// Stripe checkout
 export async function createCheckoutSession(plan) {
   if (!["one-time", "monthly"].includes(plan)) {
     throw new Error("Invalid plan");
