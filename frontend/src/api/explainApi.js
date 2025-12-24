@@ -1,4 +1,4 @@
-// src/api/explainApi.js – Full file (renamed back from billApi.js, with improved error handling)
+// src/api/explainApi.js – Full updated file with safe response handling
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -17,60 +17,42 @@ export async function uploadBillToAPI(file, sessionId = null) {
   }
 
   try {
-    console.log("Uploading to:", WORKER_URL);
-    console.log("File:", file.name, file.size, file.type);
-
     const res = await fetch(WORKER_URL, {
       method: "POST",
       mode: "cors",
       headers,
-      body: formData, // Let browser set Content-Type + boundary
+      body: formData,
     });
 
-    console.log("Response status:", res.status);
-    console.log("Response headers:", [...res.headers.entries()]);
-
-    // Always read response body for better errors
+    // ALWAYS read as text first to avoid JSON parse crash
     const responseText = await res.text();
-    console.log("Raw response body:", responseText);
 
-    if (!res.ok) {
-      let errorMsg = `Upload failed: HTTP ${res.status}`;
-      try {
-        const errorData = JSON.parse(responseText);
-        errorMsg = errorData.error || errorMsg;
-      } catch (e) {
-        errorMsg = responseText || errorMsg;
-      }
-      throw new Error(errorMsg.trim() || "Unknown server error");
+    // Detect the outdated worker response
+    if (responseText.trim().includes("ExplainMyBill Worker – Running")) {
+      throw new Error("Backend worker is outdated and not processing uploads. Please redeploy the latest worker code.");
     }
 
-    // Try to parse JSON
+    if (!res.ok) {
+      throw new Error(`Upload failed (HTTP ${res.status}): ${responseText.trim() || "Unknown error"}`);
+    }
+
+    // Only try JSON parse if it's likely valid
     try {
       return JSON.parse(responseText);
-    } catch (e) {
-      console.error("Response is not valid JSON:", responseText);
-      throw new Error("Server returned invalid data. Please redeploy the latest worker code.");
+    } catch (parseErr) {
+      console.error("Invalid JSON from server:", responseText);
+      throw new Error("Server returned invalid data. Worker needs update.");
     }
   } catch (err) {
     console.error("uploadBillToAPI error:", err);
-
-    if (err.message.includes("Maximum call stack size exceeded")) {
-      throw new Error("Maximum call stack size exceeded");
-    }
-
-    if (err.message.includes("ExplainMyBill Worker – Running")) {
-      throw new Error("Worker is running but not processing uploads. Redeploy the latest worker code.");
-    }
-
-    throw new Error(err.message || "Failed to upload bill. Check your connection and try again.");
+    throw err; // Re-throw with clear message
   }
 }
 
 // Alias for consistency
 export const explainBill = uploadBillToAPI;
 
-// Stripe checkout
+// Stripe checkout (unchanged)
 export async function createCheckoutSession(plan) {
   if (!["one-time", "monthly"].includes(plan)) {
     throw new Error("Invalid plan");
