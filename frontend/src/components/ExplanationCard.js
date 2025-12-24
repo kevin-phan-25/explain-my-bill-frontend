@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
+// Rotating Chevron Icon
 const ChevronDown = ({ isOpen }) => (
   <svg
     className={`w-6 h-6 sm:w-8 sm:h-8 text-white transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
@@ -17,20 +18,27 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   if (!result) return null;
 
-  const { explanation, pages = [], isPaid } = result;
+  const { explanation = "No explanation available", pages = [], isPaid } = result;
 
-  const structuredPages = pages
-    .map((p) => {
-      try {
-        return typeof p.structured === "object" ? p.structured : JSON.parse(p.explanation || "{}");
-      } catch {
-        return null;
+  // Parse structured data with robust fallback
+  let mainData = null;
+  let fallbackExplanation = explanation;
+
+  if (pages.length > 0) {
+    for (const p of pages) {
+      if (p.structured && typeof p.structured === "object") {
+        mainData = p.structured;
+        break;
       }
-    })
-    .filter(Boolean);
+      if (p.explanation) {
+        fallbackExplanation = p.explanation;
+      }
+    }
+  }
 
-  const hasStructured = structuredPages.length > 0;
-  const mainData = hasStructured ? structuredPages[0] : null;
+  // Fallback key amounts if structured data is missing
+  const keyAmounts = mainData?.keyAmounts || {};
+  const confidences = mainData?.confidences || {};
 
   const toggleSection = (section) => {
     setOpenSections((prev) =>
@@ -39,10 +47,66 @@ export default function ExplanationCard({ result, onUpgrade }) {
   };
 
   const handleDownloadPDF = () => {
-    // (Keep your existing ultra-modern PDF code — it's perfect)
     const doc = new jsPDF("p", "mm", "a4");
-    // ... (your full PDF code from before)
-    doc.save("Medical_Bill_Intelligence_Report.pdf");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let y = 25;
+
+    doc.setFillColor(20, 15, 60);
+    doc.rect(0, 0, pageWidth, 55, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.text("Medical Bill Intelligence Report", margin, y);
+    y += 12;
+
+    doc.setFontSize(13);
+    doc.setTextColor(150, 220, 255);
+    doc.text("Dual AI-Powered • Confidence Verified • Secure Analysis", margin, y);
+    y += 10;
+
+    doc.setFontSize(11);
+    doc.setTextColor(180, 220, 255);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
+    y += 20;
+
+    // Financial Summary
+    const amounts = [
+      { label: "Total Charges", value: keyAmounts.totalCharges || "Not detected" },
+      { label: "Insurance Paid", value: keyAmounts.insurancePaid || "Not detected" },
+      { label: "Insurance Adjusted", value: keyAmounts.insuranceAdjusted || "Not listed" },
+      { label: "Patient Responsibility", value: keyAmounts.patientResponsibility || "Not detected" },
+    ];
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Financial Summary", margin, y);
+    y += 12;
+
+    doc.setFontSize(12);
+    amounts.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${item.label}:`, margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(item.value, margin + 80, y);
+      y += 10;
+    });
+    y += 15;
+
+    // Explanation fallback
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Explanation", margin, y);
+    y += 10;
+
+    const lines = doc.splitTextToSize(fallbackExplanation || "Analysis in progress. Please try again.", pageWidth - 2 * margin);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(lines, margin, y);
+
+    doc.save("Medical_Bill_Report.pdf");
   };
 
   const ConfidenceBadge = ({ score }) => {
@@ -51,20 +115,18 @@ export default function ExplanationCard({ result, onUpgrade }) {
     return <span className={`text-xs font-bold ${color}`}>Confidence: {score}%</span>;
   };
 
-  // TL;DR Bottom Line Strip
   const BottomLineStrip = () => {
-    if (!mainData) return null;
-    const total = mainData.keyAmounts?.totalCharges || "unknown";
-    const owe = mainData.keyAmounts?.patientResponsibility || "unknown";
+    const total = keyAmounts.totalCharges || "unknown amount";
+    const owe = keyAmounts.patientResponsibility || "unknown amount";
 
     return (
       <div className="mt-6 rounded-xl bg-white/10 backdrop-blur border border-white/20 p-5 text-center">
         <p className="text-lg sm:text-xl font-bold text-white">
           💡 <span className="text-cyan-300">Bottom line:</span> You were charged{" "}
           <span className="text-red-300 font-extrabold">{total}</span>
-          {owe !== "unknown" && (
+          {owe !== "unknown amount" && (
             <>
-              , insurance covered most of it, and you likely owe{" "}
+              {" "}and likely owe{" "}
               <span className="text-green-300 font-extrabold">{owe}</span>.
             </>
           )}
@@ -84,45 +146,40 @@ export default function ExplanationCard({ result, onUpgrade }) {
           <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Dual AI Powered</p>
         </div>
 
-        {/* Key Metrics */}
-        {mainData && (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6">
-              {[
-                { label: "Total Charges", value: mainData.keyAmounts?.totalCharges || "N/A", conf: mainData.confidences?.totalCharges },
-                { label: "Insurance Paid", value: mainData.keyAmounts?.insurancePaid || "N/A", conf: mainData.confidences?.insurancePaid },
-                { label: "You Owe", value: mainData.keyAmounts?.patientResponsibility || "N/A", conf: mainData.confidences?.patientResponsibility },
-                { label: "Potential Savings", value: isPaid ? "Estimate soon" : "???", conf: null },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-xl bg-white/10 border border-white/30 shadow-xl hover:shadow-cyan-500/50 transition-all duration-400 hover:scale-105"
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${i < 3 
-                    ? (i === 0 ? 'from-red-600 to-orange-600' : i === 1 ? 'from-green-600 to-emerald-600' : 'from-amber-600 to-yellow-600')
-                    : 'from-cyan-600 to-blue-600'} opacity-70`} />
-                  <div className="relative p-0.5">
-                    <div className="bg-white/10 backdrop-blur rounded-t-xl sm:rounded-t-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center">
-                      <p className="text-white/80 text-xs sm:text-xs font-semibold tracking-wide">{item.label}</p>
-                      <ConfidenceBadge score={item.conf} />
-                    </div>
-                  </div>
-                  <div className="relative px-3 sm:px-5 py-5 sm:py-7 text-center">
-                    <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-words">
-                      {item.value}
-                    </p>
-                  </div>
+        {/* Key Metrics – Always show something */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6">
+          {[
+            { label: "Total Charges", value: keyAmounts.totalCharges || "Not detected", conf: confidences.totalCharges },
+            { label: "Insurance Paid", value: keyAmounts.insurancePaid || "Not detected", conf: confidences.insurancePaid },
+            { label: "You Owe", value: keyAmounts.patientResponsibility || "Not detected", conf: confidences.patientResponsibility },
+            { label: "Potential Savings", value: isPaid ? "Estimate soon" : "???", conf: null },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="relative overflow-hidden rounded-xl sm:rounded-2xl backdrop-blur-xl bg-white/10 border border-white/30 shadow-xl hover:shadow-cyan-500/50 transition-all duration-400 hover:scale-105"
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${i < 3 
+                ? (i === 0 ? 'from-red-600 to-orange-600' : i === 1 ? 'from-green-600 to-emerald-600' : 'from-amber-600 to-yellow-600')
+                : 'from-cyan-600 to-blue-600'} opacity-70`} />
+              <div className="relative p-0.5">
+                <div className="bg-white/10 backdrop-blur rounded-t-xl sm:rounded-t-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center">
+                  <p className="text-white/80 text-xs sm:text-xs font-semibold tracking-wide">{item.label}</p>
+                  <ConfidenceBadge score={item.conf} />
                 </div>
-              ))}
+              </div>
+              <div className="relative px-3 sm:px-5 py-5 sm:py-7 text-center">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white drop-shadow-lg glow break-words">
+                  {item.value}
+                </p>
+              </div>
             </div>
+          ))}
+        </div>
 
-            {/* TL;DR Bottom Line */}
-            <BottomLineStrip />
-          </>
-        )}
+        <BottomLineStrip />
 
         <div className="space-y-4 sm:space-y-5 mt-8">
-          {/* What We Found – Short Bullets Only */}
+          {/* What We Found – Always shows something */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("summary")}
@@ -134,8 +191,8 @@ export default function ExplanationCard({ result, onUpgrade }) {
               <ChevronDown isOpen={openSections.includes("summary")} />
             </button>
             {openSections.includes("summary") && (
-              <div className="px-5 sm:px-7 pb-5 sm:pb-7 text-white/90 text-sm sm:text-base">
-                {hasStructured && mainData.summaryPoints?.length > 0 ? (
+              <div className="px-5 sm:px-7 pb-5 sm:pb-7 text-white/90 text-sm sm:text-base leading-relaxed">
+                {mainData?.summaryPoints && mainData.summaryPoints.length > 0 ? (
                   <ul className="space-y-3">
                     {mainData.summaryPoints.map((point, i) => (
                       <li key={i} className="flex items-start gap-3">
@@ -144,16 +201,22 @@ export default function ExplanationCard({ result, onUpgrade }) {
                       </li>
                     ))}
                   </ul>
+                ) : fallbackExplanation ? (
+                  <div className="prose prose-invert max-w-none">
+                    {fallbackExplanation.split("\n").map((para, i) => (
+                      <p key={i} className="mb-3">{para || <br />}</p>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="italic text-white/70">
-                    {mainData?.summary || explanation || "No key insights available yet."}
+                  <p className="italic text-white/60">
+                    We analyzed your bill, but couldn't extract structured data. Try uploading a clearer image or PDF.
                   </p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Red Flags – High Impact */}
+          {/* Red Flags */}
           {isPaid && mainData?.redFlags?.length > 0 && (
             <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-red-500/50 shadow-2xl shadow-red-500/20 overflow-hidden">
               <button
@@ -180,7 +243,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
             </div>
           )}
 
-          {/* Recommended Next Steps – Action-Oriented */}
+          {/* Next Steps */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("nextsteps")}
