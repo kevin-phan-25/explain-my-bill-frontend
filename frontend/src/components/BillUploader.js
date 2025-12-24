@@ -1,7 +1,7 @@
-// src/components/BillUploader.js
+// src/components/BillUploader.js – Full code with reverted import to explainApi.js (as requested)
 
 import React, { useState } from 'react';
-import { uploadBillToAPI } from '../api/explainApi'; // ← Correct import path (fixed from explainApi)
+import { uploadBillToAPI } from '../api/explainApi'; // ← Reverted back to explainApi.js as you requested
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
