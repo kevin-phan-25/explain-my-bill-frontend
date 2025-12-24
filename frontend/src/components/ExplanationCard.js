@@ -47,6 +47,13 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
+  // Fixed: Show actual savings estimate when available (from backend), otherwise appropriate message
+  const potentialSavingsValue = mainData?.potentialSavings 
+    ? mainData.potentialSavings 
+    : isPaid 
+      ? "Calculated in full report" 
+      : "Upgrade to unlock";
+
   const metrics = [
     {
       label: "Total Billed Charges",
@@ -65,7 +72,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     },
     {
       label: "Potential Savings",
-      value: isPaid ? "Analysis in progress" : "Upgrade to unlock",
+      value: potentialSavingsValue,
       conf: null,
     },
   ];
@@ -147,6 +154,22 @@ export default function ExplanationCard({ result, onUpgrade }) {
       });
       y += 10;
     }
+
+    // Potential Savings in PDF
+    doc.setFillColor(25, 60, 100);
+    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 35, 10, 10, "F");
+    y += 8;
+
+    doc.setTextColor(120, 255, 200);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Potential Savings", margin, y);
+    y += 12;
+
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text(potentialSavingsValue, margin + 5, y);
+    y += 20;
 
     // Services Section
     if (mainData?.services?.length > 0) {
