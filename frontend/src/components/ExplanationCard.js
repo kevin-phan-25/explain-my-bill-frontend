@@ -49,9 +49,11 @@ export default function ExplanationCard({ result, onUpgrade }) {
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
     let y = 25;
 
+    // Premium Header
     doc.setFillColor(20, 15, 60);
     doc.rect(0, 0, pageWidth, 55, "F");
 
@@ -62,51 +64,192 @@ export default function ExplanationCard({ result, onUpgrade }) {
     y += 12;
 
     doc.setFontSize(13);
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 220, 255);
-    doc.text("Dual AI-Powered • Confidence Verified • Secure Analysis", margin, y);
+    doc.text("Precision Analysis • Confidence Verified • Secure Processing", margin, y);
     y += 10;
 
     doc.setFontSize(11);
     doc.setTextColor(180, 220, 255);
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, y);
-    y += 20;
+    doc.text("Confidence: 🟢 High (80–100%)   🟡 Medium (50–79%)   🔴 Low (<50%)", margin, y + 8);
+    y += 25;
 
     // Financial Summary
-    const amounts = [
-      { label: "Total Charges", value: keyAmounts.totalCharges || "Not detected" },
-      { label: "Insurance Paid", value: keyAmounts.insurancePaid || "Not detected" },
-      { label: "Insurance Adjusted", value: keyAmounts.insuranceAdjusted || "Not listed" },
-      { label: "Patient Responsibility", value: keyAmounts.patientResponsibility || "Not detected" },
-    ];
+    if (keyAmounts || confidences) {
+      doc.setFillColor(15, 10, 50);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 75, 10, 10, "F");
+      y += 5;
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Financial Overview", margin, y);
+      y += 15;
+
+      const amounts = [
+        { label: "Total Charges", value: keyAmounts.totalCharges || "Not detected", conf: confidences.totalCharges },
+        { label: "Insurance Paid", value: keyAmounts.insurancePaid || "Not detected", conf: confidences.insurancePaid },
+        { label: "Insurance Adjusted", value: keyAmounts.insuranceAdjusted || "Not listed", conf: null },
+        { label: "Patient Responsibility", value: keyAmounts.patientResponsibility || "Not detected", conf: confidences.patientResponsibility },
+      ];
+
+      doc.setFontSize(13);
+      amounts.forEach((item) => {
+        const confBadge = item.conf !== undefined && item.conf !== null
+          ? item.conf >= 80 ? "🟢" : item.conf >= 50 ? "🟡" : "🔴"
+          : "";
+
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(180, 230, 255);
+        doc.text(`${item.label}:`, margin + 5, y);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(255, 255, 255);
+        doc.text(item.value, margin + 85, y);
+
+        if (confBadge) {
+          doc.setFontSize(11);
+          doc.setTextColor(item.conf >= 80 ? 100, 255, 150 : item.conf >= 50 ? 255, 255, 120 : 255, 120, 120);
+          doc.text(`${confBadge} ${item.conf}% Confidence`, margin + 85, y + 7);
+          doc.setFontSize(13);
+        }
+
+        y += 20;
+      });
+      y += 10;
+    }
+
+    // Services
+    if (mainData?.services?.length > 0) {
+      doc.setFillColor(20, 15, 70);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 15 + mainData.services.length * 9, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Services & Procedures", margin, y);
+      y += 12;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      mainData.services.forEach((service) => {
+        const lines = doc.splitTextToSize(service, pageWidth - 2 * margin - 20);
+        doc.text(`• ${lines[0]}`, margin + 8, y);
+        lines.slice(1).forEach(line => {
+          y += 7;
+          doc.text(line, margin + 12, y);
+        });
+        y += 9;
+      });
+      y += 10;
+    }
+
+    // Executive Summary
+    if (mainData?.summary) {
+      doc.setFillColor(25, 20, 80);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 50, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(180, 240, 255);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Executive Summary", margin, y);
+      y += 12;
+
+      doc.setFontSize(12);
+      doc.setTextColor(220, 240, 255);
+      const summaryLines = doc.splitTextToSize(mainData.summary, pageWidth - 2 * margin - 15);
+      doc.text(summaryLines, margin + 5, y);
+      y += summaryLines.length * 8 + 15;
+    }
+
+    // Detailed Explanation
+    doc.setFillColor(10, 8, 50);
+    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 90, 8, 8, "F");
+    y += 5;
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Financial Summary", margin, y);
+    doc.text("Detailed Analysis", margin, y);
     y += 12;
 
-    doc.setFontSize(12);
-    amounts.forEach((item) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(`${item.label}:`, margin, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(item.value, margin + 80, y);
-      y += 10;
-    });
-    y += 15;
+    const explanationText = mainData?.explanation || fallbackExplanation || "Analysis complete.";
+    const explanationLines = doc.splitTextToSize(explanationText, pageWidth - 2 * margin - 15);
+    doc.setFontSize(11);
+    doc.setTextColor(200, 230, 255);
+    doc.text(explanationLines, margin + 5, y);
+    y += explanationLines.length * 7 + 20;
 
-    // Explanation fallback
+    // Critical Alerts
+    if (isPaid && mainData?.redFlags?.length > 0) {
+      doc.setFillColor(90, 15, 40);
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainData.redFlags.length * 10, 8, 8, "F");
+      y += 5;
+
+      doc.setTextColor(255, 120, 120);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("⚠️ Critical Alerts", margin, y);
+      y += 14;
+
+      doc.setFontSize(11);
+      mainData.redFlags.forEach((flag) => {
+        const flagLines = doc.splitTextToSize(flag, pageWidth - 2 * margin - 20);
+        doc.text(`• ${flagLines[0]}`, margin + 8, y);
+        flagLines.slice(1).forEach(line => {
+          y += 7;
+          doc.text(line, margin + 12, y);
+        });
+        y += 10;
+      });
+      y += 10;
+    }
+
+    // Recommended Actions
+    doc.setFillColor(10, 60, 40);
+    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 70, 8, 8, "F");
+    y += 5;
+
+    doc.setTextColor(120, 255, 180);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Explanation", margin, y);
-    y += 10;
+    doc.text("🎯 Recommended Actions", margin, y);
+    y += 14;
 
-    const lines = doc.splitTextToSize(fallbackExplanation || "Analysis in progress. Please try again.", pageWidth - 2 * margin);
+    const steps = mainData?.nextSteps || [
+      "Request a detailed itemized bill from your provider",
+      "Compare charges on FairHealthConsumer.org",
+      "Call your insurance using the claim number",
+      "Appeal anything that looks wrong — many succeed!"
+    ];
+
     doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.text(lines, margin, y);
+    doc.setTextColor(200, 255, 230);
+    steps.forEach((step, i) => {
+      const stepLines = doc.splitTextToSize(step, pageWidth - 2 * margin - 20);
+      doc.text(`${i + 1}. ${stepLines[0]}`, margin + 8, y);
+      stepLines.slice(1).forEach(line => {
+        y += 7;
+        doc.text(line, margin + 15, y);
+      });
+      y += 10;
+    });
 
-    doc.save("Medical_Bill_Report.pdf");
+    // Premium Footer
+    doc.setFillColor(15, 10, 60);
+    doc.rect(0, pageHeight - 35, pageWidth, 35, "F");
+
+    doc.setTextColor(150, 200, 255);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "italic");
+    doc.text("Generated by ExplainMyBill • Precision Intelligence Engine", margin, pageHeight - 18);
+    doc.setFontSize(10);
+    doc.text("This report is for informational purposes only. Always verify with your healthcare provider and insurer.", margin, pageHeight - 10);
+
+    doc.save("Medical_Bill_Intelligence_Report.pdf");
   };
 
   const ConfidenceBadge = ({ score }) => {
@@ -143,10 +286,10 @@ export default function ExplanationCard({ result, onUpgrade }) {
             <span className="text-4xl sm:text-5xl">🔍</span>
             Your Medical Bill Review
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Dual AI Powered</p>
+          <p className="text-base sm:text-lg md:text-xl text-white/80">Clear • Actionable • Precision Engineered</p>
         </div>
 
-        {/* Key Metrics – Always show something */}
+        {/* Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6">
           {[
             { label: "Total Charges", value: keyAmounts.totalCharges || "Not detected", conf: confidences.totalCharges },
@@ -179,14 +322,14 @@ export default function ExplanationCard({ result, onUpgrade }) {
         <BottomLineStrip />
 
         <div className="space-y-4 sm:space-y-5 mt-8">
-          {/* What We Found – Always shows something */}
+          {/* What We Found */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("summary")}
               className="w-full px-5 sm:px-7 py-3 sm:py-5 text-left flex items-center justify-between text-lg sm:text-xl text-white hover:text-cyan-300 transition"
             >
               <span className="flex items-center gap-3">
-                <span className="text-2xl sm:text-3xl">✅</span> What We Found
+                <span className="text-2xl sm:text-3xl">✅</span> Key Insights
               </span>
               <ChevronDown isOpen={openSections.includes("summary")} />
             </button>
@@ -209,14 +352,14 @@ export default function ExplanationCard({ result, onUpgrade }) {
                   </div>
                 ) : (
                   <p className="italic text-white/60">
-                    We analyzed your bill, but couldn't extract structured data. Try uploading a clearer image or PDF.
+                    Your bill has been processed. Try uploading a clearer document for more detailed insights.
                   </p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Red Flags */}
+          {/* Critical Alerts */}
           {isPaid && mainData?.redFlags?.length > 0 && (
             <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-red-500/50 shadow-2xl shadow-red-500/20 overflow-hidden">
               <button
@@ -224,7 +367,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
                 className="w-full px-5 sm:px-7 py-3 sm:py-5 text-left flex items-center justify-between text-lg sm:text-xl text-white hover:text-red-300 transition"
               >
                 <span className="flex items-center gap-3">
-                  <span className="text-2xl sm:text-3xl">⚠️</span> Potential Issues Detected
+                  <span className="text-2xl sm:text-3xl">⚠️</span> Critical Alerts
                 </span>
                 <ChevronDown isOpen={openSections.includes("redflags")} />
               </button>
@@ -243,14 +386,14 @@ export default function ExplanationCard({ result, onUpgrade }) {
             </div>
           )}
 
-          {/* Next Steps */}
+          {/* Recommended Actions */}
           <div className="rounded-xl sm:rounded-2xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
             <button
               onClick={() => toggleSection("nextsteps")}
               className="w-full px-5 sm:px-7 py-3 sm:py-5 text-left flex items-center justify-between text-lg sm:text-xl text-white hover:text-green-300 transition"
             >
               <span className="flex items-center gap-3">
-                <span className="text-2xl sm:text-3xl">🎯</span> Recommended Next Steps
+                <span className="text-2xl sm:text-3xl">🎯</span> Recommended Actions
               </span>
               <ChevronDown isOpen={openSections.includes("nextsteps")} />
             </button>
@@ -275,7 +418,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
                 {!isPaid && (!mainData?.nextSteps || mainData.nextSteps.length === 0) && (
                   <p className="mt-6 text-center text-white/70 text-sm italic">
-                    Upgrade for personalized, bill-specific next steps and appeal tools.
+                    Upgrade for personalized, bill-specific actions and professional appeal support.
                   </p>
                 )}
               </div>
@@ -296,16 +439,16 @@ export default function ExplanationCard({ result, onUpgrade }) {
           <div className="mt-12 sm:mt-16 text-center">
             <div className="rounded-3xl backdrop-blur-xl bg-gradient-to-r from-red-600/30 to-orange-600/30 border border-red-500/40 p-8 sm:p-12 max-w-4xl mx-auto">
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-6">
-                Unlock Expert Review & Appeal Tools
+                Unlock Professional Review & Appeal Support
               </h3>
               <p className="text-base sm:text-xl text-white/90 mb-10 max-w-2xl mx-auto px-4">
-                Spot hidden overcharges • Estimate savings • Get a ready-to-send appeal letter
+                Detect hidden overcharges • Estimate savings • Receive a ready-to-send appeal letter
               </p>
               <button
                 onClick={onUpgrade}
                 className="bg-white text-red-600 font-bold py-5 sm:py-6 px-12 sm:px-16 rounded-2xl text-xl sm:text-2xl shadow-2xl hover:scale-110 transition-transform"
               >
-                Upgrade Now – Save Money Today
+                Upgrade Now – Protect Your Wallet
               </button>
               <p className="mt-8 text-white/70 text-sm sm:text-lg">30-day money-back • One-time or unlimited plans</p>
             </div>
