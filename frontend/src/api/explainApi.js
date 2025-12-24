@@ -1,4 +1,4 @@
-// src/api/explainApi.js – Full updated file with safe response handling
+// src/api/explainApi.js – Full updated with safe handling (no changes to features)
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -10,7 +10,6 @@ export async function uploadBillToAPI(file, sessionId = null) {
     formData.append("sessionId", sessionId);
   }
 
-  // Only send X-Dev-Bypass on localhost (for free full access during dev)
   const headers = {};
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     headers["X-Dev-Bypass"] = "true";
@@ -24,35 +23,32 @@ export async function uploadBillToAPI(file, sessionId = null) {
       body: formData,
     });
 
-    // ALWAYS read as text first to avoid JSON parse crash
-    const responseText = await res.text();
-
-    // Detect the outdated worker response
-    if (responseText.trim().includes("ExplainMyBill Worker – Running")) {
-      throw new Error("Backend worker is outdated and not processing uploads. Please redeploy the latest worker code.");
-    }
+    const responseText = await res.text(); // Read as text first to avoid parse crash
 
     if (!res.ok) {
-      throw new Error(`Upload failed (HTTP ${res.status}): ${responseText.trim() || "Unknown error"}`);
+      let errorMsg = `Upload failed (HTTP ${res.status})`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMsg += `: ${errorData.error || responseText}`;
+      } catch {
+        errorMsg += `: ${responseText}`;
+      }
+      throw new Error(errorMsg);
     }
 
-    // Only try JSON parse if it's likely valid
     try {
       return JSON.parse(responseText);
-    } catch (parseErr) {
-      console.error("Invalid JSON from server:", responseText);
-      throw new Error("Server returned invalid data. Worker needs update.");
+    } catch {
+      throw new Error("Server returned invalid data. Worker needs redeploy.");
     }
   } catch (err) {
-    console.error("uploadBillToAPI error:", err);
-    throw err; // Re-throw with clear message
+    console.error("Upload error:", err);
+    throw new Error(err.message || "Network error – check connection");
   }
 }
 
-// Alias for consistency
 export const explainBill = uploadBillToAPI;
 
-// Stripe checkout (unchanged)
 export async function createCheckoutSession(plan) {
   if (!["one-time", "monthly"].includes(plan)) {
     throw new Error("Invalid plan");
@@ -66,14 +62,12 @@ export async function createCheckoutSession(plan) {
       body: JSON.stringify({ plan }),
     });
 
+    const data = await res.json();
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || `Payment failed: ${res.status}`);
+      throw new Error(data.error || "Payment failed");
     }
-
-    return await res.json();
+    return data;
   } catch (err) {
-    console.error("createCheckoutSession error:", err);
-    throw new Error("Could not start payment. Try again later.");
+    throw new Error("Payment setup failed");
   }
 }
