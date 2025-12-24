@@ -1,7 +1,7 @@
-// BillUploader.jsx – Fixed import path to match actual file name
+// src/components/BillUploader.js
 
 import React, { useState } from 'react';
-import { uploadBillToAPI } from '../api/billApi'; // ← Changed from '../api/explainApi' to '../api/billApi'
+import { uploadBillToAPI } from '../api/billApi'; // ← Correct import path (fixed from explainApi)
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
