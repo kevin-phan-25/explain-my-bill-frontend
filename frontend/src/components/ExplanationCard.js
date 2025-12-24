@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
-// Rotating Chevron Icon
+// Rotating Chevron Icon (now used in sections below)
 const ChevronDown = ({ isOpen }) => (
   <svg
     className={`w-6 h-6 sm:w-8 sm:h-8 text-white transition-transform duration-500 ease-out ${
@@ -47,7 +47,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // === FIXED: Moved metrics array outside JSX to avoid parser confusion ===
   const metrics = [
     {
       label: "Total Billed Charges",
@@ -74,10 +73,11 @@ export default function ExplanationCard({ result, onUpgrade }) {
   const handleDownloadPDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    // Removed unused pageHeight
     const margin = 20;
     let y = 30;
 
+    // Premium Header
     doc.setFillColor(10, 15, 40);
     doc.rect(0, 0, pageWidth, 60, "F");
 
@@ -105,16 +105,15 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
     y += 20;
 
-    // Financial Summary (PDF content remains the same — omitted here for brevity)
-    // ... (keep all your existing PDF code)
+    // Add your full PDF sections here (Financial Overview, Services, etc.)
+    // For brevity, keeping placeholder – restore your original PDF code
 
     doc.save("Medical_Bill_Intelligence_Report.pdf");
   };
 
   const ConfidenceBadge = ({ score }) => {
     if (score === undefined || score === null) return null;
-    const color =
-      score >= 80 ? "text-cyan-300" : score >= 50 ? "text-yellow-300" : "text-red-300";
+    const color = score >= 80 ? "text-cyan-300" : score >= 50 ? "text-yellow-300" : "text-red-300";
     const label = score >= 80 ? "High" : score >= 50 ? "Medium" : "Low";
     return (
       <span className={`text-xs font-bold ${color} bg-black/30 px-2 py-1 rounded-full`}>
@@ -155,7 +154,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </p>
         </div>
 
-        {/* Key Metrics Grid - Now using safe 'metrics' array */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {metrics.map((item, i) => (
             <div
@@ -180,8 +178,42 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         <BottomLineStrip />
 
-        {/* Rest of your sections (Key Insights, Critical Alerts, etc.) */}
-        {/* ... (unchanged from previous version) */}
+        <div className="space-y-6 mt-12">
+          {/* Key Insights Section - Now uses toggleSection & ChevronDown */}
+          <div className="rounded-3xl backdrop-blur-2xl bg-white/5 border border-white/10 shadow-2xl overflow-hidden">
+            <button
+              onClick={() => toggleSection("summary")}
+              className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-white/5 transition"
+            >
+              <span className="flex items-center gap-4 text-2xl font-bold text-white">
+                <span>✅</span> Key Insights & Findings
+              </span>
+              <ChevronDown isOpen={openSections.includes("summary")} />
+            </button>
+            {openSections.includes("summary") && (
+              <div className="px-8 pb-8 text-white/90 text-base leading-relaxed">
+                {mainData?.summaryPoints?.length > 0 ? (
+                  <ul className="space-y-4">
+                    {mainData.summaryPoints.map((point, i) => (
+                      <li key={i} className="flex items-start gap-4">
+                        <span className="text-cyan-400 text-xl mt-1">▸</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : fallbackExplanation ? (
+                  <div className="prose prose-invert max-w-none space-y-4">
+                    {fallbackExplanation.split("\n").map((para, i) => para && <p key={i}>{para}</p>)}
+                  </div>
+                ) : (
+                  <p className="italic text-white/60">No detailed explanation available.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Add other accordion sections here (Critical Alerts, Recommended Actions) using the same pattern */}
+        </div>
 
         <div className="text-center my-16">
           <button
