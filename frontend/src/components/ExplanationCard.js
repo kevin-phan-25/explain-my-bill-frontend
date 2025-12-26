@@ -27,27 +27,19 @@ export default function ExplanationCard({ result, onUpgrade }) {
   let fullExplanation = "";
 
   if (pages.length > 0) {
-    // Find the first page with valid structured data
     for (const page of pages) {
       if (page.structured && typeof page.structured === "object") {
         mainStructured = page.structured;
-        // Prefer structured.explanation (AI-generated plain English)
         if (page.structured.explanation) {
           fullExplanation = page.structured.explanation;
-        }
-        // Fallback to page-level explanation if structured doesn't have it
-        else if (page.explanation) {
+        } else if (page.explanation) {
           fullExplanation = page.explanation;
         }
-        break; // Use first valid structured page (typically page 1)
-      }
-      // If no structured data at all, collect any raw explanations
-      else if (page.explanation) {
+        break;
+      } else if (page.explanation) {
         fullExplanation = page.explanation;
       }
     }
-
-    // Multi-page fallback: combine all page explanations if no primary found
     if (!fullExplanation && pages.some(p => p.explanation)) {
       fullExplanation = pages
         .map(p => p.explanation || "")
@@ -56,7 +48,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
     }
   }
 
-  // Final safety fallback
   fullExplanation = fullExplanation.trim() || "No detailed explanation available at this time.";
 
   const keyAmounts = mainStructured?.keyAmounts || {};
@@ -68,11 +59,11 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // Potential Savings – consistent across UI and PDF
-  const potentialSavingsValue = mainStructured?.potentialSavings 
-    ? mainStructured.potentialSavings 
-    : isPaid 
-      ? "Calculated in full report" 
+  // Potential Savings – now shows real estimate from backend
+  const potentialSavingsValue = mainStructured?.potentialSavings
+    ? mainStructured.potentialSavings
+    : isPaid
+      ? "Calculated in full report"
       : "Upgrade to unlock";
 
   const metrics = [
@@ -104,7 +95,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     const margin = 20;
     let y = 30;
 
-    // Clean Professional Header
+    // Header
     doc.setFillColor(15, 25, 60);
     doc.rect(0, 0, pageWidth, 60, "F");
 
@@ -132,10 +123,10 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
     y += 20;
 
-    // Financial Summary Section
+    // Financial Summary
     if (Object.keys(keyAmounts).length > 0 || potentialSavingsValue) {
       doc.setFillColor(20, 35, 80);
-      doc.roundedRect(margin - 5, y - 15, pageWidth - 2 * margin + 10, 100, 12, 12, "F");
+      doc.roundedRect(margin - 5, y - 15, pageWidth - 2 * margin + 10, 110, 12, 12, "F");
       y += 5;
 
       doc.setTextColor(255, 255, 255);
@@ -174,15 +165,16 @@ export default function ExplanationCard({ result, onUpgrade }) {
         y += 24;
       });
 
-      // Potential Savings in Summary
+      // Potential Savings in PDF
       y += 8;
       doc.setFont("helvetica", "bold");
       doc.setTextColor(120, 255, 200);
       doc.text("Potential Savings:", margin + 5, y);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(255, 255, 255);
-      doc.text(potentialSavingsValue, margin + 95, y);
-      y += 20;
+      const savingsLines = doc.splitTextToSize(potentialSavingsValue, pageWidth - margin - 95 - 10);
+      doc.text(savingsLines, margin + 95, y);
+      y += savingsLines.length * 10 + 10;
     }
 
     // Services Section
@@ -205,10 +197,10 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
-    // Full Explanation / Key Findings
+    // Detailed Explanation
     if (fullExplanation || mainStructured?.summary) {
       doc.setFillColor(30, 45, 100);
-      const sectionHeight = fullExplanation ? 100 : 60;
+      const sectionHeight = fullExplanation.length > 500 ? 120 : 80;
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, sectionHeight, 10, 10, "F");
       y += 8;
 
@@ -355,7 +347,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         {/* Accordion Sections */}
         <div className="space-y-6 mt-12">
-          {/* Key Findings / Detailed Explanation */}
+          {/* Detailed Explanation */}
           <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl overflow-hidden">
             <button
               onClick={() => toggleSection("summary")}
@@ -382,9 +374,9 @@ export default function ExplanationCard({ result, onUpgrade }) {
                   </div>
                 )}
                 <div className="prose prose-invert prose-base max-w-none space-y-4">
-                  {fullExplanation.split("\n\n").map((para, i) => (
-                    para.trim() && <p key={i}>{para.trim()}</p>
-                  ))}
+                  {fullExplanation.split("\n\n").map((para, i) =>
+                    para.trim() ? <p key={i}>{para.trim()}</p> : null
+                  )}
                 </div>
               </div>
             )}
