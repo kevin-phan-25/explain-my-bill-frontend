@@ -5,6 +5,7 @@ import ExplanationCard from './components/ExplanationCard';
 import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
+import PaidFeatures from './components/PaidFeatures.js;
 
 const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // test key
 
