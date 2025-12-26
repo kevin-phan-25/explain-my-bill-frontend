@@ -293,7 +293,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-950 to-indigo-950 py-8 px-4 sm:py-12">
       <div className="max-w-5xl mx-auto">
-        {/* Header – Reduced */}
+        {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white mb-4 tracking-tight">
             <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -305,7 +305,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </p>
         </div>
 
-        {/* Key Metrics Grid – Dollar values reduced by 40% */}
+        {/* Key Metrics Grid – Dollar values even smaller */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {metrics.map((item, i) => (
             <div
@@ -313,14 +313,14 @@ export default function ExplanationCard({ result, onUpgrade }) {
               className="relative group overflow-hidden rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl hover:shadow-cyan-500/40 transition-all duration-500 hover:scale-105"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative p-6">
-                <div className="flex justify-between items-start mb-4">
+              <div className="relative p-5">
+                <div className="flex justify-between items-start mb-3">
                   <p className="text-white/70 text-xs font-bold uppercase tracking-wider">
                     {item.label}
                   </p>
                   <ConfidenceBadge score={item.conf} />
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white break-all leading-snug">
+                <p className="text-xl sm:text-2xl font-black text-white break-all leading-tight tracking-tight">
                   {item.value}
                 </p>
               </div>
@@ -330,7 +330,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         <BottomLineStrip />
 
-        {/* Accordion Sections – Reduced spacing & sizes */}
+        {/* Accordion Sections */}
         <div className="space-y-6 mt-12">
           {/* Key Findings */}
           <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl overflow-hidden">
@@ -425,7 +425,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </div>
         </div>
 
-        {/* Download Button – Reduced */}
+        {/* Download Button */}
         <div className="text-center my-12">
           <button
             onClick={handleDownloadPDF}
