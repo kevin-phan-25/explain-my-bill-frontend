@@ -305,7 +305,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </p>
         </div>
 
-        {/* Key Metrics Grid – 40% smaller */}
+        {/* Key Metrics Grid – Dollar values reduced by 40% */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {metrics.map((item, i) => (
             <div
@@ -320,7 +320,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
                   </p>
                   <ConfidenceBadge score={item.conf} />
                 </div>
-                <p className="text-3xl sm:text-4xl font-black text-white break-words leading-tight">
+                <p className="text-2xl sm:text-3xl font-black text-white break-all leading-snug">
                   {item.value}
                 </p>
               </div>
