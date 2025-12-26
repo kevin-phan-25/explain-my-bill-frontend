@@ -28,7 +28,7 @@ export default function UpgradeModal({ onClose, stripePromise }) {
     {
       plan: "one-time",
       name: "One-Time Review",
-      price: "$19.99",
+      price: "$14.99",
       subtitle: "Perfect for a single bill",
       features: [
         "Full red flags detection",
@@ -56,7 +56,7 @@ export default function UpgradeModal({ onClose, stripePromise }) {
     {
       plan: "lifetime",
       name: "Lifetime Unlimited",
-      price: "$67",
+      price: "$69.99",
       subtitle: "One payment, forever access",
       features: [
         "Everything in Monthly",
