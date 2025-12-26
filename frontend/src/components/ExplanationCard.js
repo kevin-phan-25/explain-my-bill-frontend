@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
-// Rotating Chevron Icon (smaller)
+// Rotating Chevron Icon
 const ChevronDown = ({ isOpen }) => (
   <svg
-    className={`w-5 h-5 sm:w-6 sm:h-6 text-white transition-transform duration-500 ease-out ${
+    className={`w-6 h-6 sm:w-8 sm:h-8 text-white transition-transform duration-500 ease-out ${
       isOpen ? "rotate-180" : ""
     }`}
     fill="none"
@@ -47,7 +47,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // Potential Savings logic
+  // Fixed: Show actual savings estimate when available (from backend), otherwise appropriate message
   const potentialSavingsValue = mainData?.potentialSavings 
     ? mainData.potentialSavings 
     : isPaid 
@@ -66,7 +66,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       conf: confidences.insurancePaid,
     },
     {
-      label: "Your Responsibility",
+      label: "Patient Responsibility",
       value: keyAmounts.patientResponsibility || "Not detected",
       conf: confidences.patientResponsibility,
     },
@@ -83,6 +83,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     const margin = 20;
     let y = 30;
 
+    // Clean Professional Header
     doc.setFillColor(15, 25, 60);
     doc.rect(0, 0, pageWidth, 60, "F");
 
@@ -110,6 +111,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
     y += 20;
 
+    // Financial Summary Section
     if (Object.keys(keyAmounts).length > 0) {
       doc.setFillColor(20, 35, 80);
       doc.roundedRect(margin - 5, y - 15, pageWidth - 2 * margin + 10, 90, 12, 12, "F");
@@ -153,6 +155,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
+    // Potential Savings in PDF
     doc.setFillColor(25, 60, 100);
     doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 35, 10, 10, "F");
     y += 8;
@@ -168,6 +171,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
     doc.text(potentialSavingsValue, margin + 5, y);
     y += 20;
 
+    // Services Section
     if (mainData?.services?.length > 0) {
       doc.setFillColor(25, 40, 90);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainData.services.length * 9, 10, 10, "F");
@@ -187,6 +191,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
+    // Key Insights / Executive Summary
     if (mainData?.summary || fallbackExplanation) {
       doc.setFillColor(30, 45, 100);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 60, 10, 10, "F");
@@ -205,6 +210,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += lines.length * 8 + 15;
     }
 
+    // Critical Alerts (Paid only)
     if (isPaid && mainData?.redFlags?.length > 0) {
       doc.setFillColor(90, 20, 40);
       doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 25 + mainData.redFlags.length * 10, 10, 10, "F");
@@ -224,6 +230,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
+    // Recommended Actions
     doc.setFillColor(20, 70, 60);
     doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 80, 10, 10, "F");
     y += 8;
@@ -248,6 +255,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += lines.length * 7 + 6;
     });
 
+    // Footer
     doc.setFillColor(10, 15, 45);
     doc.rect(0, doc.internal.pageSize.getHeight() - 40, pageWidth, 40, "F");
     doc.setTextColor(160, 210, 255);
