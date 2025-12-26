@@ -66,7 +66,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       conf: confidences.insurancePaid,
     },
     {
-      label: "Patient Responsibility",
+      label: "Your Responsibility",
       value: keyAmounts.patientResponsibility || "Not detected",
       conf: confidences.patientResponsibility,
     },
