@@ -20,26 +20,47 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   if (!result) return null;
 
-  const { explanation = "No explanation available", pages = [], isPaid } = result;
+  const { pages = [], isPaid } = result;
 
-  // Parse structured data with robust fallback
-  let mainData = null;
-  let fallbackExplanation = explanation;
+  // === NORMALIZATION: Unified access to structured data and explanation ===
+  let mainStructured = null;
+  let fullExplanation = "";
 
   if (pages.length > 0) {
-    for (const p of pages) {
-      if (p.structured && typeof p.structured === "object") {
-        mainData = p.structured;
-        break;
+    // Find the first page with valid structured data
+    for (const page of pages) {
+      if (page.structured && typeof page.structured === "object") {
+        mainStructured = page.structured;
+        // Prefer structured.explanation (AI-generated plain English)
+        if (page.structured.explanation) {
+          fullExplanation = page.structured.explanation;
+        }
+        // Fallback to page-level explanation if structured doesn't have it
+        else if (page.explanation) {
+          fullExplanation = page.explanation;
+        }
+        break; // Use first valid structured page (typically page 1)
       }
-      if (p.explanation) {
-        fallbackExplanation = p.explanation;
+      // If no structured data at all, collect any raw explanations
+      else if (page.explanation) {
+        fullExplanation = page.explanation;
       }
+    }
+
+    // Multi-page fallback: combine all page explanations if no primary found
+    if (!fullExplanation && pages.some(p => p.explanation)) {
+      fullExplanation = pages
+        .map(p => p.explanation || "")
+        .filter(Boolean)
+        .join("\n\n");
     }
   }
 
-  const keyAmounts = mainData?.keyAmounts || {};
-  const confidences = mainData?.confidences || {};
+  // Final safety fallback
+  fullExplanation = fullExplanation.trim() || "No detailed explanation available at this time.";
+
+  const keyAmounts = mainStructured?.keyAmounts || {};
+  const confidences = mainStructured?.confidences || {};
 
   const toggleSection = (section) => {
     setOpenSections((prev) =>
@@ -47,9 +68,9 @@ export default function ExplanationCard({ result, onUpgrade }) {
     );
   };
 
-  // Fixed: Show actual savings estimate when available (from backend), otherwise appropriate message
-  const potentialSavingsValue = mainData?.potentialSavings 
-    ? mainData.potentialSavings 
+  // Potential Savings – consistent across UI and PDF
+  const potentialSavingsValue = mainStructured?.potentialSavings 
+    ? mainStructured.potentialSavings 
     : isPaid 
       ? "Calculated in full report" 
       : "Upgrade to unlock";
@@ -112,9 +133,9 @@ export default function ExplanationCard({ result, onUpgrade }) {
     y += 20;
 
     // Financial Summary Section
-    if (Object.keys(keyAmounts).length > 0) {
+    if (Object.keys(keyAmounts).length > 0 || potentialSavingsValue) {
       doc.setFillColor(20, 35, 80);
-      doc.roundedRect(margin - 5, y - 15, pageWidth - 2 * margin + 10, 90, 12, 12, "F");
+      doc.roundedRect(margin - 5, y - 15, pageWidth - 2 * margin + 10, 100, 12, 12, "F");
       y += 5;
 
       doc.setTextColor(255, 255, 255);
@@ -142,7 +163,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(255, 255, 255);
-        doc.text(`${item.value}`, margin + 95, y);
+        doc.text(`${item.value || "Not specified"}`, margin + 95, y);
 
         if (confText) {
           doc.setFontSize(10);
@@ -152,29 +173,22 @@ export default function ExplanationCard({ result, onUpgrade }) {
         }
         y += 24;
       });
-      y += 10;
+
+      // Potential Savings in Summary
+      y += 8;
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(120, 255, 200);
+      doc.text("Potential Savings:", margin + 5, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(255, 255, 255);
+      doc.text(potentialSavingsValue, margin + 95, y);
+      y += 20;
     }
 
-    // Potential Savings in PDF
-    doc.setFillColor(25, 60, 100);
-    doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 35, 10, 10, "F");
-    y += 8;
-
-    doc.setTextColor(120, 255, 200);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Potential Savings", margin, y);
-    y += 12;
-
-    doc.setFontSize(14);
-    doc.setTextColor(255, 255, 255);
-    doc.text(potentialSavingsValue, margin + 5, y);
-    y += 20;
-
     // Services Section
-    if (mainData?.services?.length > 0) {
+    if (mainStructured?.services?.length > 0) {
       doc.setFillColor(25, 40, 90);
-      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainData.services.length * 9, 10, 10, "F");
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 20 + mainStructured.services.length * 9, 10, 10, "F");
       y += 8;
 
       doc.setTextColor(255, 255, 255);
@@ -183,7 +197,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 14;
 
       doc.setFontSize(11);
-      mainData.services.forEach((service) => {
+      mainStructured.services.forEach((service) => {
         const lines = doc.splitTextToSize(service, pageWidth - 2 * margin - 20);
         doc.text(`• ${lines.join("\n  ")}`, margin + 8, y);
         y += lines.length * 7 + 6;
@@ -191,29 +205,30 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 10;
     }
 
-    // Key Insights / Executive Summary
-    if (mainData?.summary || fallbackExplanation) {
+    // Full Explanation / Key Findings
+    if (fullExplanation || mainStructured?.summary) {
       doc.setFillColor(30, 45, 100);
-      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 60, 10, 10, "F");
+      const sectionHeight = fullExplanation ? 100 : 60;
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, sectionHeight, 10, 10, "F");
       y += 8;
 
       doc.setTextColor(150, 230, 255);
       doc.setFontSize(18);
-      doc.text("Key Findings", margin, y);
+      doc.text("Detailed Explanation", margin, y);
       y += 14;
 
       doc.setFontSize(12);
       doc.setTextColor(220, 240, 255);
-      const text = mainData?.summary || fallbackExplanation;
+      const text = fullExplanation || mainStructured?.summary || "No detailed explanation available.";
       const lines = doc.splitTextToSize(text, pageWidth - 2 * margin - 10);
       doc.text(lines, margin + 5, y);
       y += lines.length * 8 + 15;
     }
 
     // Critical Alerts (Paid only)
-    if (isPaid && mainData?.redFlags?.length > 0) {
+    if (isPaid && mainStructured?.redFlags?.length > 0) {
       doc.setFillColor(90, 20, 40);
-      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 25 + mainData.redFlags.length * 10, 10, 10, "F");
+      doc.roundedRect(margin - 5, y - 10, pageWidth - 2 * margin + 10, 25 + mainStructured.redFlags.length * 10, 10, 10, "F");
       y += 8;
 
       doc.setTextColor(255, 140, 140);
@@ -222,7 +237,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
       y += 14;
 
       doc.setFontSize(11);
-      mainData.redFlags.forEach((flag) => {
+      mainStructured.redFlags.forEach((flag) => {
         const lines = doc.splitTextToSize(flag, pageWidth - 2 * margin - 20);
         doc.text(`• ${lines.join("\n  ")}`, margin + 8, y);
         y += lines.length * 7 + 6;
@@ -240,8 +255,8 @@ export default function ExplanationCard({ result, onUpgrade }) {
     doc.text("Next Steps", margin, y);
     y += 14;
 
-    const steps = mainData?.nextSteps || [
-      "Request an itemized bill from your provider",
+    const steps = mainStructured?.nextSteps || [
+      "Request a detailed itemized bill from your provider",
       "Compare charges at FairHealthConsumer.org",
       "Contact your insurance company using the claim number",
       "File an appeal if you spot errors — many patients succeed",
@@ -313,7 +328,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </p>
         </div>
 
-        {/* Key Metrics Grid – Dollar values even smaller */}
+        {/* Key Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {metrics.map((item, i) => (
             <div
@@ -340,41 +355,43 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         {/* Accordion Sections */}
         <div className="space-y-6 mt-12">
-          {/* Key Findings */}
+          {/* Key Findings / Detailed Explanation */}
           <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl overflow-hidden">
             <button
               onClick={() => toggleSection("summary")}
               className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-white/5 transition"
             >
               <span className="flex items-center gap-4 text-2xl font-bold text-white">
-                <span>✅</span> Key Findings
+                <span>✅</span> Detailed Explanation
               </span>
               <ChevronDown isOpen={openSections.includes("summary")} />
             </button>
             {openSections.includes("summary") && (
               <div className="px-8 pb-8 text-white/90 text-base leading-relaxed">
-                {mainData?.summaryPoints?.length > 0 ? (
-                  <ul className="space-y-4">
-                    {mainData.summaryPoints.map((point, i) => (
-                      <li key={i} className="flex items-start gap-4">
-                        <span className="text-cyan-400 text-xl mt-1">•</span>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : fallbackExplanation ? (
-                  <div className="prose prose-invert prose-base max-w-none space-y-4">
-                    {fallbackExplanation.split("\n").map((para, i) => para && <p key={i}>{para}</p>)}
+                {mainStructured?.summaryPoints?.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-xl font-bold text-cyan-300 mb-4">Key Insights</h3>
+                    <ul className="space-y-4">
+                      {mainStructured.summaryPoints.map((point, i) => (
+                        <li key={i} className="flex items-start gap-4">
+                          <span className="text-cyan-400 text-xl mt-1">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ) : (
-                  <p className="italic text-white/60">No detailed findings available at this time.</p>
                 )}
+                <div className="prose prose-invert prose-base max-w-none space-y-4">
+                  {fullExplanation.split("\n\n").map((para, i) => (
+                    para.trim() && <p key={i}>{para.trim()}</p>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           {/* Important Alerts – Paid Only */}
-          {isPaid && mainData?.redFlags?.length > 0 && (
+          {isPaid && mainStructured?.redFlags?.length > 0 && (
             <div className="rounded-2xl bg-red-900/30 backdrop-blur-xl border border-red-500/50 shadow-xl shadow-red-500/30 overflow-hidden">
               <button
                 onClick={() => toggleSection("redflags")}
@@ -388,7 +405,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
               {openSections.includes("redflags") && (
                 <div className="px-8 pb-8">
                   <ul className="space-y-4">
-                    {mainData.redFlags.map((flag, i) => (
+                    {mainStructured.redFlags.map((flag, i) => (
                       <li key={i} className="bg-red-900/40 p-5 rounded-xl border border-red-500/60 text-white/95 text-base">
                         <span className="font-bold text-red-300">Alert:</span> {flag}
                       </li>
@@ -413,8 +430,8 @@ export default function ExplanationCard({ result, onUpgrade }) {
             {openSections.includes("nextsteps") && (
               <div className="px-8 pb-8">
                 <ol className="space-y-5">
-                  {(mainData?.nextSteps?.length > 0
-                    ? mainData.nextSteps
+                  {(mainStructured?.nextSteps?.length > 0
+                    ? mainStructured.nextSteps
                     : [
                         "Request a detailed itemized bill from your provider",
                         "Compare charges on FairHealthConsumer.org",
@@ -444,7 +461,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </button>
         </div>
 
-        {/* Upgrade CTA – Smaller */}
+        {/* Upgrade CTA */}
         {!isPaid && (
           <div className="mt-16 text-center">
             <div className="rounded-2xl bg-gradient-to-r from-orange-600/40 via-red-600/40 to-purple-800/40 backdrop-blur-xl border border-orange-500/60 p-10 max-w-4xl mx-auto shadow-2xl">
