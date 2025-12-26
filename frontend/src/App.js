@@ -6,7 +6,7 @@ import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 import Testimonials from './components/Testimonials';
 
-const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // Replace with your actual test key
+const stripePromise = loadStripe('pk_test_51YourTestKeyHere'); // KEEP TEST KEY — safe for testing
 
 function App() {
   const [result, setResult] = useState(null);
@@ -32,7 +32,6 @@ function App() {
     setShowUpgrade(false);
   };
 
-  // Full realistic sample data
   const sampleBills = [
     {
       name: 'Routine Check-Up (Normal)',
@@ -136,7 +135,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
-      {/* Accessibility Skip Link */}
+      {/* Accessibility */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-6 py-3 rounded-lg z-50">
         Skip to main content
       </a>
@@ -151,7 +150,7 @@ function App() {
         </div>
       </header>
 
-      {/* Strong Privacy Badge – Prominent Trust Signal */}
+      {/* Strong Privacy Badge */}
       <div className="container mx-auto px-6 -mt-8 relative z-10 mb-12">
         <div className="bg-white rounded-3xl shadow-2xl p-8 text-center border-4 border-green-400">
           <div className="flex items-center justify-center gap-4 mb-4">
@@ -199,7 +198,7 @@ function App() {
         )}
       </main>
 
-      {/* Sample Bills – 50% Smaller Images + Tighter Grid */}
+      {/* Sample Bills – 50% Smaller */}
       <section className="container mx-auto px-6 py-16 bg-gray-50">
         <h2 className="text-4xl font-bold text-center text-blue-900 mb-12">
           Or Try a Sample Bill Instantly
@@ -230,15 +229,15 @@ function App() {
         </div>
       </section>
 
-      {/* Testimonials – Prominent Trust Builder */}
+      {/* Testimonials */}
       <Testimonials />
 
       {/* Footer with Strong Guarantee */}
       <footer className="bg-blue-900 text-white py-16 text-center">
         <div className="container mx-auto px-6">
-          <p className="text-3xl font-bold mb-6">30-Day Money-Back Guarantee</p>
+          <p className="text-4xl font-bold mb-6">30-Day Money-Back Guarantee</p>
           <p className="text-xl mb-8 max-w-3xl mx-auto">
-            Not satisfied? Get a full refund within 30 days — no questions asked.
+            Try any plan risk-free. Not satisfied? Get a full refund within 30 days — no questions asked.
           </p>
           <p className="text-lg opacity-90">
             © 2025 ExplainMyBill • Educational tool • Not medical or legal advice
