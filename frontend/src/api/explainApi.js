@@ -1,5 +1,3 @@
-// src/api/explainApi.js – Full updated with safe handling (no changes to features)
-
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
 export async function uploadBillToAPI(file, sessionId = null) {
