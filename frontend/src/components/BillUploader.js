@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { uploadBillToAPI } from '../api/explainApi'; // ← Reverted back to explainApi.js as you requested
+import { uploadBillToAPI } from '../api/explainApi';
+import { upscaleImage } from '../utils/upscaleImage';
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
@@ -16,12 +17,19 @@ export default function BillUploader({ onResult, onLoading }) {
     onLoading(true);
 
     try {
-      // Directly pass the file — uploadBillToAPI handles FormData
-      const data = await uploadBillToAPI(file);
+      let processedFile = file;
+
+      // 🔥 CRITICAL FIX: upscale images before OCR
+      if (file.type.startsWith("image/")) {
+        processedFile = await upscaleImage(file, 2.5);
+      }
+
+      const data = await uploadBillToAPI(processedFile);
       onResult(data);
+
     } catch (err) {
-      setError(err.message);
-      console.error(err);
+      setError(err.message || "Failed to analyze bill");
+      console.error("Upload error:", err);
     } finally {
       setLoading(false);
       onLoading(false);
@@ -57,12 +65,21 @@ export default function BillUploader({ onResult, onLoading }) {
           id="bill-upload"
         />
         <label htmlFor="bill-upload" className="cursor-pointer block">
-          <div className="text-4xl mb-2 text-blue-600" aria-hidden="true">Document</div>
+          <div className="text-4xl mb-2 text-blue-600">📄</div>
+
           <p className="text-base font-bold text-gray-800 mb-1">
             {loading ? "Analyzing your bill..." : "Drop bill or click to upload"}
           </p>
-          <p className="text-xs text-gray-600">PDF, image, or Excel • Max 20MB</p>
-          {file && <p className="mt-2 text-sm text-green-600 font-bold">{file.name}</p>}
+
+          <p className="text-xs text-gray-600">
+            PDF or high-resolution image • Max 20MB
+          </p>
+
+          {file && (
+            <p className="mt-2 text-sm text-green-600 font-bold">
+              {file.name}
+            </p>
+          )}
         </label>
       </div>
 
@@ -70,7 +87,6 @@ export default function BillUploader({ onResult, onLoading }) {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center">
           <p className="font-bold">Upload Failed</p>
           <p className="text-sm">{error}</p>
-          <p className="text-xs mt-2">Check browser console (F12) for more details.</p>
         </div>
       )}
 
