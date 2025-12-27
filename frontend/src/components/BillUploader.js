@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { uploadBillToAPI } from '../api/explainApi';
-import { upscaleImage } from '../utils/upscaleImage';
+import { prepareImageForOCR } from '../utils/prepareImageForOCR';
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
@@ -19,14 +19,13 @@ export default function BillUploader({ onResult, onLoading }) {
     try {
       let processedFile = file;
 
-      // 🔥 CRITICAL FIX: upscale images before OCR
+      // 🔥 Preprocess images only
       if (file.type.startsWith("image/")) {
-        processedFile = await upscaleImage(file, 2.5);
+        processedFile = await prepareImageForOCR(file);
       }
 
       const data = await uploadBillToAPI(processedFile);
       onResult(data);
-
     } catch (err) {
       setError(err.message || "Failed to analyze bill");
       console.error("Upload error:", err);
@@ -42,10 +41,7 @@ export default function BillUploader({ onResult, onLoading }) {
         className={`border-4 border-dashed rounded-lg p-5 text-center transition-all ${
           dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
         } ${loading ? 'opacity-70' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragActive(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => setDragActive(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -66,20 +62,11 @@ export default function BillUploader({ onResult, onLoading }) {
         />
         <label htmlFor="bill-upload" className="cursor-pointer block">
           <div className="text-4xl mb-2 text-blue-600">📄</div>
-
           <p className="text-base font-bold text-gray-800 mb-1">
             {loading ? "Analyzing your bill..." : "Drop bill or click to upload"}
           </p>
-
-          <p className="text-xs text-gray-600">
-            PDF or high-resolution image • Max 20MB
-          </p>
-
-          {file && (
-            <p className="mt-2 text-sm text-green-600 font-bold">
-              {file.name}
-            </p>
-          )}
+          <p className="text-xs text-gray-600">PDF, image, or Excel • Max 20MB</p>
+          {file && <p className="mt-2 text-sm text-green-600 font-bold">{file.name}</p>}
         </label>
       </div>
 
