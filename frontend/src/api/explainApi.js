@@ -1,5 +1,25 @@
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
+/**
+ * SAFELY PARSE JSON EVEN IF AI RETURNS ```json BLOCKS
+ */
+function safeParseJSON(text) {
+  if (!text || typeof text !== "string") return null;
+
+  // Remove markdown code fences if present
+  const cleaned = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.warn("JSON parse failed, returning null");
+    return null;
+  }
+}
+
 export async function uploadBillToAPI(file, sessionId = null) {
   const formData = new FormData();
   formData.append("bill", file);
@@ -9,7 +29,12 @@ export async function uploadBillToAPI(file, sessionId = null) {
   }
 
   const headers = {};
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+
+  // Local dev bypass (unchanged)
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
     headers["X-Dev-Bypass"] = "true";
   }
 
@@ -21,32 +46,72 @@ export async function uploadBillToAPI(file, sessionId = null) {
       body: formData,
     });
 
-    const responseText = await res.text(); // Read as text first to avoid parse crash
+    const responseText = await res.text(); // ALWAYS read as text first
 
+    // ---- HARD FAILURE (HTTP != 200)
     if (!res.ok) {
       let errorMsg = `Upload failed (HTTP ${res.status})`;
-      try {
-        const errorData = JSON.parse(responseText);
-        errorMsg += `: ${errorData.error || responseText}`;
-      } catch {
+
+      const parsedError = safeParseJSON(responseText);
+      if (parsedError?.error) {
+        errorMsg += `: ${parsedError.error}`;
+      } else if (responseText) {
         errorMsg += `: ${responseText}`;
       }
+
       throw new Error(errorMsg);
     }
 
-    try {
-      return JSON.parse(responseText);
-    } catch {
-      throw new Error("Server returned invalid data. Worker needs redeploy.");
+    // ---- TRY PARSE JSON SAFELY
+    const parsed = safeParseJSON(responseText);
+
+    // ---- ABSOLUTE LAST RESORT FALLBACK
+    if (!parsed) {
+      console.error("Worker returned non-JSON:", responseText);
+
+      return {
+        isPaid: false,
+        explanation:
+          "We extracted text from your bill, but analysis failed. Showing raw OCR output instead.",
+        structured: null,
+        pages: [],
+        rawTextPreview: responseText.slice(0, 2000),
+        features: {
+          ocrStatus: "unknown",
+          confidence: "none",
+        },
+      };
     }
+
+    /**
+     * 🚨 CRITICAL FIX
+     * Never allow frontend to show “Not detected” if OCR text exists
+     */
+    if (
+      parsed.pages &&
+      Array.isArray(parsed.pages) &&
+      parsed.pages.some((p) => p?.structured || p?.explanation)
+    ) {
+      parsed.ocrFallback = false;
+    }
+
+    return parsed;
   } catch (err) {
     console.error("Upload error:", err);
+
+    // Frontend-safe error
     throw new Error(err.message || "Network error – check connection");
   }
 }
 
+/**
+ * Backwards compatibility
+ */
 export const explainBill = uploadBillToAPI;
 
+/**
+ * STRIPE CHECKOUT (UNCHANGED, SAFE)
+ */
 export async function createCheckoutSession(plan) {
   if (!["one-time", "monthly"].includes(plan)) {
     throw new Error("Invalid plan");
@@ -60,12 +125,16 @@ export async function createCheckoutSession(plan) {
       body: JSON.stringify({ plan }),
     });
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Payment failed");
+    const text = await res.text();
+    const data = safeParseJSON(text);
+
+    if (!res.ok || !data) {
+      throw new Error(data?.error || "Payment failed");
     }
+
     return data;
   } catch (err) {
+    console.error("Stripe error:", err);
     throw new Error("Payment setup failed");
   }
 }
