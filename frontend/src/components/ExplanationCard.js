@@ -1,9 +1,15 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 import ConfidenceHeatMap from "./ConfidenceHeatMap";
+import ConfidenceTooltip from "./ConfidenceTooltip";
+import ConfidenceLegendModal from "./ConfidenceLegendModal";
+import LowConfidenceFlag from "./LowConfidenceFlag";
+import FieldAIExplanation from "./FieldAIExplanation";
 
 export default function ExplanationCard({ result }) {
   const [open, setOpen] = useState(true);
+  const [showLegend, setShowLegend] = useState(false);
+  const [hovered, setHovered] = useState(null);
 
   if (!result?.pages?.length) {
     return <p className="text-center">No data returned.</p>;
@@ -41,85 +47,66 @@ export default function ExplanationCard({ result }) {
         doc.text(l, 20, y);
         y += 8;
       });
-      y += 4;
+
+      if (v.aiExplanation) {
+        doc.setFontSize(10);
+        doc.text(`Why this may be wrong: ${v.aiExplanation}`, 20, y);
+        y += 10;
+        doc.setFontSize(12);
+      }
     });
-
-    y += 10;
-
-    explanation.split("\n").forEach((line) => {
-      doc.splitTextToSize(line, 170).forEach((l) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(l, 20, y);
-        y += 8;
-      });
-    });
-
-    if (points.length > 0) {
-      y += 10;
-      doc.setFontSize(14);
-      doc.text("Summary Points:", 20, y);
-      y += 8;
-
-      points.forEach((p) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text("• " + p, 20, y);
-        y += 7;
-      });
-    }
-
-    if (nextSteps.length > 0) {
-      y += 10;
-      doc.setFontSize(14);
-      doc.text("Next Steps:", 20, y);
-      y += 8;
-
-      nextSteps.forEach((step) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text("• " + step, 20, y);
-        y += 7;
-      });
-    }
 
     doc.save("bill-explanation.pdf");
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-6">
+    <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-6 relative">
       <h2 className="text-3xl font-bold text-center">Your Bill Explained</h2>
 
-      {/* Key Amounts */}
-      {Object.keys(keyAmounts).length > 0 && (
-        <div className="grid grid-cols-2 gap-4">
-          {Object.entries(keyAmounts).map(([k, v]) => {
-            if (!v || typeof v !== "object") return null;
-            return (
-              <div
-                key={k}
-                className="bg-indigo-100 rounded-xl p-4 text-center"
-              >
-                <p className="text-sm capitalize">
-                  {k.replace(/([A-Z])/g, " $1")}
-                </p>
-                <p className="text-xl font-bold">{v.value || "—"}</p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {Math.round((v.confidence || 0) * 100)}% confidence
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <button
+        onClick={() => setShowLegend(true)}
+        className="text-sm text-indigo-600 underline text-center block"
+      >
+        What do confidence scores mean?
+      </button>
 
-      {/* 🔥 Confidence Heat Map */}
+      {/* Key Amount Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(keyAmounts).map(([k, v]) => {
+          if (!v || typeof v !== "object") return null;
+
+          return (
+            <div
+              key={k}
+              className="bg-indigo-100 rounded-xl p-4 text-center relative"
+              onMouseEnter={() => setHovered(k)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <p className="text-sm capitalize">
+                {k.replace(/([A-Z])/g, " $1")}
+              </p>
+              <p className="text-xl font-bold">{v.value || "—"}</p>
+
+              <p className="text-xs text-gray-600 mt-1">
+                {Math.round((v.confidence || 0) * 100)}% confidence
+              </p>
+
+              <LowConfidenceFlag confidence={v.confidence} />
+              <FieldAIExplanation explanation={v.aiExplanation} />
+
+              {hovered === k && (
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2">
+                  <ConfidenceTooltip
+                    confidence={v.confidence}
+                    source={v.source}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       <ConfidenceHeatMap keyAmounts={keyAmounts} />
 
       <button
@@ -131,16 +118,16 @@ export default function ExplanationCard({ result }) {
 
       {open && (
         <div className="space-y-2">
-          {points.length > 0 &&
-            points.map((p, i) => <p key={i}>• {p}</p>)}
-
+          {points.map((p, i) => (
+            <p key={i}>• {p}</p>
+          ))}
           <p className="whitespace-pre-wrap">{explanation}</p>
 
           {nextSteps.length > 0 && (
             <>
               <p className="font-bold mt-2">Next Steps:</p>
-              {nextSteps.map((step, i) => (
-                <p key={i}>• {step}</p>
+              {nextSteps.map((s, i) => (
+                <p key={i}>• {s}</p>
               ))}
             </>
           )}
@@ -153,6 +140,10 @@ export default function ExplanationCard({ result }) {
       >
         Download PDF
       </button>
+
+      {showLegend && (
+        <ConfidenceLegendModal onClose={() => setShowLegend(false)} />
+      )}
     </div>
   );
 }
