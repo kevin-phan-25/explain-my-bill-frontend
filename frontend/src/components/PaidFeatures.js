@@ -6,104 +6,70 @@ export default function PaidFeatures({ features }) {
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+    visible: { opacity: 1, y: 0 },
   };
 
-  const cardHover = { scale: 1.03 };
-
   return (
-    <div className="mt-12 space-y-10 px-4 md:px-0">
-      <h3 className="text-4xl font-bold text-center text-blue-900 mb-10">
+    <div className="mt-16 space-y-10">
+      <h3 className="text-4xl font-bold text-center text-blue-900 dark:text-white mb-12">
         Premium Insights Just for You
       </h3>
 
-      {features.cptExplanations?.length > 0 && (
-        <motion.div
-          className="bg-purple-50 border-l-8 border-purple-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
-          initial="hidden"
-          animate="visible"
-          whileHover={cardHover}
-          variants={cardVariants}
-        >
-          <h4 className="text-2xl font-bold text-purple-800 mb-4 flex items-center">
-            <span className="text-4xl mr-4 animate-pulse">📋</span> CPT Codes Explained
-          </h4>
-          <ul className="space-y-3 text-lg text-purple-700 list-disc list-inside">
-            {features.cptExplanations.map((exp, i) => (
-              <li key={i}>{exp}</li>
-            ))}
-          </ul>
-        </motion.div>
-      )}
-
       {features.redFlags?.length > 0 && (
         <motion.div
-          className="bg-red-50 border-l-8 border-red-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
+          variants={cardVariants}
           initial="hidden"
           animate="visible"
-          whileHover={cardHover}
-          variants={cardVariants}
+          className="bg-red-50 dark:bg-red-900/30 border-l-8 border-red-600 rounded-2xl p-10 shadow-2xl"
         >
-          <h4 className="text-2xl font-bold text-red-800 mb-4 flex items-center">
-            <span className="text-4xl mr-4 animate-pulse">⚠️</span> Red Flags Found
+          <h4 className="text-3xl font-bold text-red-800 dark:text-red-300 mb-6 flex items-center gap-4">
+            <span className="text-5xl">⚠️</span> Red Flags Detected
           </h4>
-          <ul className="space-y-3 text-lg text-red-700 list-disc list-inside">
+          <ul className="space-y-4 text-xl">
             {features.redFlags.map((flag, i) => (
-              <li key={i}>{flag}</li>
+              <li key={i} className="flex gap-4">
+                <span className="text-red-500">•</span>
+                <span>{flag}</span>
+              </li>
             ))}
           </ul>
         </motion.div>
       )}
 
-      {features.estimatedSavings && (
+      {features.potentialSavings && (
         <motion.div
-          className="bg-green-50 border-l-8 border-green-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
+          variants={cardVariants}
           initial="hidden"
           animate="visible"
-          whileHover={cardHover}
-          variants={cardVariants}
+          className="bg-green-50 dark:bg-green-900/30 border-l-8 border-green-600 rounded-2xl p-10 shadow-2xl"
         >
-          <h4 className="text-2xl font-bold text-green-800 mb-4 flex items-center">
-            <span className="text-4xl mr-4 animate-pulse">💰</span> Potential Savings
+          <h4 className="text-3xl font-bold text-green-800 dark:text-green-300 mb-6 flex items-center gap-4">
+            <span className="text-5xl">💰</span> Potential Savings
           </h4>
-          <p className="text-3xl font-bold text-green-700">
-            {features.estimatedSavings.potentialSavings || "$200–$800"}
-          </p>
-          <p className="text-lg text-green-700 mt-3">
-            {features.estimatedSavings.reason || "Common overcharges on office visits, labs, and imaging."}
+          <p className="text-4xl font-black text-green-700 dark:text-green-400">
+            {features.potentialSavings}
           </p>
         </motion.div>
       )}
 
-      {features.appealLetter && (
+      {features.services?.length > 0 && (
         <motion.div
-          className="bg-indigo-50 border-l-8 border-indigo-600 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition"
+          variants={cardVariants}
           initial="hidden"
           animate="visible"
-          whileHover={cardHover}
-          variants={cardVariants}
+          className="bg-blue-50 dark:bg-blue-900/30 border-l-8 border-blue-600 rounded-2xl p-10 shadow-2xl"
         >
-          <h4 className="text-2xl font-bold text-indigo-800 mb-4 flex items-center">
-            <span className="text-4xl mr-4 animate-pulse">✉️</span> Ready-to-Send Appeal Letter
+          <h4 className="text-3xl font-bold text-blue-800 dark:text-blue-300 mb-6 flex items-center gap-4">
+            <span className="text-5xl">🩺</span> Services Billed
           </h4>
-          <pre className="whitespace-pre-wrap text-lg bg-white p-6 rounded-xl border shadow-inner">
-            {features.appealLetter}
-          </pre>
-        </motion.div>
-      )}
-
-      {features.customAdvice && (
-        <motion.div
-          className="bg-blue-50 border-l-8 border-blue-600 rounded-2xl p-8 shadow-xl text-center hover:shadow-2xl transition"
-          initial="hidden"
-          animate="visible"
-          whileHover={cardHover}
-          variants={cardVariants}
-        >
-          <h4 className="text-2xl font-bold text-blue-800 mb-4 flex items-center justify-center">
-            <span className="text-4xl mr-4 animate-pulse">💡</span> Your Next Steps
-          </h4>
-          <p className="text-xl text-blue-700 leading-relaxed">{features.customAdvice}</p>
+          <ul className="space-y-4 text-xl">
+            {features.services.map((s, i) => (
+              <li key={i} className="flex gap-4">
+                <span className="text-blue-500">•</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
         </motion.div>
       )}
     </div>
