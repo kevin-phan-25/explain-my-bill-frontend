@@ -4,9 +4,7 @@ import jsPDF from "jspdf";
 /* ================= Chevron ================= */
 const ChevronDown = ({ isOpen }) => (
   <svg
-    className={`w-6 h-6 text-white transition-transform ${
-      isOpen ? "rotate-180" : ""
-    }`}
+    className={`w-6 h-6 text-white transition-transform ${isOpen ? "rotate-180" : ""}`}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -18,22 +16,17 @@ const ChevronDown = ({ isOpen }) => (
 /* ================= Helpers ================= */
 const cleanValue = (...values) => {
   for (const v of values) {
-    if (
-      v !== null &&
-      v !== undefined &&
-      typeof v === "string" &&
-      v.trim() !== "" &&
-      v.toLowerCase() !== "not detected"
-    ) {
+    if (v && typeof v === "string" && v.trim() !== "" && !v.toLowerCase().includes("not detected") && !v.toLowerCase().includes("no text")) {
       return v.trim();
     }
   }
-  return null;
+  return "Not detected";
 };
 
 /* ================= Component ================= */
 export default function ExplanationCard({ result, onUpgrade }) {
   const [open, setOpen] = useState(["explanation"]);
+
   if (!result) return null;
 
   const { pages = [], isPaid } = result;
@@ -55,37 +48,26 @@ export default function ExplanationCard({ result, onUpgrade }) {
   const keyAmounts = structured?.keyAmounts || {};
   const summaryPoints = structured?.summaryPoints || [];
 
-  const totalCharges = cleanValue(keyAmounts.totalCharges, explanationText);
-  const insurancePaid = cleanValue(keyAmounts.insurancePaid, explanationText);
-  const patientResponsibility = cleanValue(
-    keyAmounts.patientResponsibility,
-    explanationText
-  );
-
+  const totalCharges = cleanValue(keyAmounts.totalCharges, structured?.summary);
+  const insurancePaid = cleanValue(keyAmounts.insurancePaid, structured?.summary);
+  const patientResponsibility = cleanValue(keyAmounts.patientResponsibility, structured?.summary);
   const potentialSavings = cleanValue(
     structured?.potentialSavings,
-    isPaid ? explanationText : null
+    isPaid ? structured?.summary : null
   );
 
   const finalExplanation =
     cleanValue(explanationText) ||
-    cleanValue(ocrText) ||
-    "We could not automatically summarize this bill, but the OCR text is shown below.";
+    cleanValue(structured?.explanation) ||
+    cleanValue(structured?.summary) ||
+    (ocrText ? "OCR text detected – full AI analysis in progress. Check back soon or upgrade for instant results." : "No bill text detected. Try a clearer image or searchable PDF.");
 
   /* ================= PDF ================= */
   const handlePDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     const W = doc.internal.pageSize.getWidth();
-    const H = doc.internal.pageSize.getHeight();
     const M = 20;
     let y = 30;
-
-    const pageBreak = (h = 10) => {
-      if (y + h > H - 30) {
-        doc.addPage();
-        y = 30;
-      }
-    };
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
@@ -101,39 +83,38 @@ export default function ExplanationCard({ result, onUpgrade }) {
       ["Total Charges", totalCharges],
       ["Insurance Paid", insurancePaid],
       ["Patient Responsibility", patientResponsibility],
-      ["Potential Savings", potentialSavings],
+      ["Potential Savings", potentialSavings || (isPaid ? "Calculated" : "Upgrade to view")],
     ];
 
     rows.forEach(([label, value]) => {
-      pageBreak();
+      if (y > 260) { doc.addPage(); y = 30; }
       doc.text(`${label}:`, M, y);
-      doc.text(value || "See explanation below", M + 70, y);
+      doc.text(value, M + 70, y);
       y += 8;
     });
 
-    pageBreak(20);
+    y += 10;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text("Explanation", M, y);
     y += 10;
-
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.splitTextToSize(finalExplanation, W - M * 2).forEach((line) => {
-      pageBreak();
+      if (y > 280) { doc.addPage(); y = 30; }
       doc.text(line, M, y);
       y += 6;
     });
 
     if (ocrText) {
-      pageBreak(20);
-      doc.setFont("helvetica", "bold");
-      doc.text("Raw OCR Text", M, y);
       y += 10;
-
+      if (y > 260) { doc.addPage(); y = 30; }
+      doc.setFont("helvetica", "bold");
+      doc.text("Raw OCR Text (for reference)", M, y);
+      y += 10;
       doc.setFont("helvetica", "normal");
       doc.splitTextToSize(ocrText, W - M * 2).forEach((line) => {
-        pageBreak();
+        if (y > 280) { doc.addPage(); y = 30; }
         doc.text(line, M, y);
         y += 6;
       });
@@ -146,7 +127,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
   return (
     <div className="bg-slate-900 min-h-screen p-6 text-white">
       <div className="max-w-4xl mx-auto space-y-8">
-
         <h1 className="text-4xl font-black text-cyan-400 text-center">
           Medical Bill Review
         </h1>
@@ -165,12 +145,16 @@ export default function ExplanationCard({ result, onUpgrade }) {
             Explanation
             <ChevronDown isOpen={open.includes("explanation")} />
           </button>
-
           {open.includes("explanation") && (
             <div className="p-5 space-y-4 text-white/90">
-              {summaryPoints.map((s, i) => (
-                <p key={i}>• {s}</p>
-              ))}
+              {summaryPoints.length > 0 && (
+                <>
+                  <h3 className="font-bold text-cyan-300">Key Insights</h3>
+                  {summaryPoints.map((s, i) => (
+                    <p key={i}>• {s}</p>
+                  ))}
+                </>
+              )}
               <p>{finalExplanation}</p>
             </div>
           )}
@@ -179,11 +163,14 @@ export default function ExplanationCard({ result, onUpgrade }) {
         {ocrText && (
           <section className="bg-slate-800 rounded-xl p-5">
             <h2 className="text-lg font-bold text-yellow-300">
-              OCR Text (AI extraction incomplete)
+              Raw OCR Text Detected
             </h2>
-            <pre className="mt-3 whitespace-pre-wrap text-sm text-white/80">
+            <pre className="mt-3 whitespace-pre-wrap text-sm text-white/80 break-words">
               {ocrText}
             </pre>
+            <p className="mt-4 text-yellow-200">
+              AI analysis is running — full explanation coming soon!
+            </p>
           </section>
         )}
 
@@ -192,20 +179,20 @@ export default function ExplanationCard({ result, onUpgrade }) {
             onClick={handlePDF}
             className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-8 py-4 rounded-full"
           >
-            Download PDF
+            Download PDF Report
           </button>
         </div>
 
         {!isPaid && (
           <div className="bg-red-900/40 p-6 rounded-xl text-center">
             <h3 className="text-2xl font-bold mb-3">
-              Unlock Full AI Review
+              Unlock Instant Full AI Review & Savings Estimates
             </h3>
             <button
               onClick={onUpgrade}
               className="bg-white text-red-800 px-6 py-3 rounded-full font-bold"
             >
-              Upgrade
+              Upgrade Now
             </button>
           </div>
         )}
@@ -213,4 +200,3 @@ export default function ExplanationCard({ result, onUpgrade }) {
     </div>
   );
 }
-
