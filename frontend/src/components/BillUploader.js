@@ -31,29 +31,16 @@ export default function BillUploader({ onResult, onLoading }) {
 
       const res = await fetch(WORKER_URL, { method: "POST", body: form });
 
-      if (!res.ok) {
-        throw new Error(`Upload failed: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
 
-      // Attempt streaming / fallback
-      let data;
-      try {
-        // Try JSON first
-        const text = await res.text();
-        data = JSON.parse(text);
-      } catch {
-        // If JSON parsing fails, fallback to simple text
-        const fallbackText = await res.text();
-        data = { pages: [{ explanation: fallbackText }], isPaid: false };
-      }
+      const text = await res.text();
+      const data = JSON.parse(text || "{}");
 
-      if (!data || !data.pages) {
-        throw new Error("No valid data returned from server");
-      }
+      if (!data.pages) throw new Error("No valid data returned");
 
       onResult(data);
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error(err);
       setError(err.message || "Upload failed");
     } finally {
       setUploading(false);
@@ -62,41 +49,31 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-      <h2 className="text-2xl font-bold text-center mb-4">Upload Your Bill</h2>
-
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Best: Clear photo of summary page or full PDF
+    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 space-y-6 transition-all duration-300">
+      <h2 className="text-3xl font-extrabold text-center text-gradient bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500">
+        Upload Your Bill
+      </h2>
+      <p className="text-center text-gray-500 dark:text-gray-400">
+        Clear photo or full PDF for instant analysis
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-10 text-center">
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={handleChange}
-            className="hidden"
-            id="file"
-          />
-          <label htmlFor="file" className="cursor-pointer">
-            {file ? (
-              <p className="font-semibold text-lg">{file.name}</p>
-            ) : (
-              <div>
-                <p className="font-semibold text-lg">Tap to upload</p>
-                <p className="text-sm text-gray-500 mt-2">JPG • PNG • PDF</p>
-              </div>
-            )}
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-12 text-center hover:border-indigo-500 transition cursor-pointer">
+          <input type="file" accept="image/*,application/pdf" onChange={handleChange} className="hidden" id="file" />
+          <label htmlFor="file" className="block">
+            {file ? <p className="font-semibold text-lg">{file.name}</p> :
+              <>
+                <p className="font-semibold text-lg">Click or Tap to Upload</p>
+                <p className="text-sm text-gray-400 mt-1">JPG • PNG • PDF</p>
+              </>
+            }
           </label>
         </div>
 
-        {error && <p className="text-red-600 text-center font-medium">{error}</p>}
+        {error && <p className="text-red-500 font-medium text-center">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={!file || uploading}
-          className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 transition"
-        >
+        <button type="submit" disabled={!file || uploading}
+          className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-all">
           {uploading ? "Analyzing..." : "Explain My Bill"}
         </button>
       </form>
