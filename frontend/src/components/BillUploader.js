@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -6,7 +6,6 @@ export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [progress, setProgress] = useState("");
 
   const handleChange = (e) => {
     const f = e.target.files[0];
@@ -14,7 +13,7 @@ export default function BillUploader({ onResult, onLoading }) {
       setFile(f);
       setError("");
     } else if (f) {
-      setError("Max 20MB");
+      setError("Max 20MB per file");
     }
   };
 
@@ -25,47 +24,36 @@ export default function BillUploader({ onResult, onLoading }) {
     setUploading(true);
     onLoading(true);
     setError("");
-    setProgress("");
 
     try {
       const form = new FormData();
       form.append("bill", file);
 
       const res = await fetch(WORKER_URL, { method: "POST", body: form });
-      if (!res.ok) throw new Error("Server error");
 
-      // Streaming SSE events
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let resultData = { pages: [], isPaid: false };
-      let partial = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        partial += decoder.decode(value, { stream: true });
-
-        // SSE parsing
-        const events = partial.split("\n\n");
-        partial = events.pop(); // keep incomplete chunk
-
-        for (let ev of events) {
-          if (!ev.startsWith("data:")) continue;
-          const jsonStr = ev.replace(/^data: /, "").trim();
-          if (!jsonStr) continue;
-
-          let chunk;
-          try { chunk = JSON.parse(jsonStr); } catch { continue; }
-
-          if (chunk.status === "progress") setProgress(JSON.stringify(chunk.chunk, null, 2));
-          if (chunk.status === "info") setProgress(chunk.message);
-          if (chunk.status === "error") setProgress(chunk.message);
-          if (chunk.status === "done" && chunk.finalResult) resultData = { ...chunk.finalResult };
-        }
+      if (!res.ok) {
+        throw new Error(`Upload failed: ${res.statusText}`);
       }
 
-      onResult(resultData);
+      // Attempt streaming / fallback
+      let data;
+      try {
+        // Try JSON first
+        const text = await res.text();
+        data = JSON.parse(text);
+      } catch {
+        // If JSON parsing fails, fallback to simple text
+        const fallbackText = await res.text();
+        data = { pages: [{ explanation: fallbackText }], isPaid: false };
+      }
+
+      if (!data || !data.pages) {
+        throw new Error("No valid data returned from server");
+      }
+
+      onResult(data);
     } catch (err) {
+      console.error("Upload error:", err);
       setError(err.message || "Upload failed");
     } finally {
       setUploading(false);
@@ -78,12 +66,18 @@ export default function BillUploader({ onResult, onLoading }) {
       <h2 className="text-2xl font-bold text-center mb-4">Upload Your Bill</h2>
 
       <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Best: Clear photo of summary page
+        Best: Clear photo of summary page or full PDF
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-10 text-center">
-          <input type="file" accept="image/*,application/pdf" onChange={handleChange} className="hidden" id="file" />
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={handleChange}
+            className="hidden"
+            id="file"
+          />
           <label htmlFor="file" className="cursor-pointer">
             {file ? (
               <p className="font-semibold text-lg">{file.name}</p>
@@ -97,7 +91,6 @@ export default function BillUploader({ onResult, onLoading }) {
         </div>
 
         {error && <p className="text-red-600 text-center font-medium">{error}</p>}
-        {progress && <pre className="text-xs text-gray-700 dark:text-gray-300 p-2 bg-gray-100 dark:bg-gray-700 rounded">{progress}</pre>}
 
         <button
           type="submit"
