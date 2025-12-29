@@ -28,16 +28,23 @@ export default function ExplanationCard({ result }) {
     doc.text("Bill Explanation", 20, y);
     y += 15;
 
+    // Key Amounts
     Object.entries(keyAmounts).forEach(([k, v]) => {
-      doc.text(`${k}: ${v || "—"}`, 20, y);
-      y += 10;
-      if (y > pageHeight - 20) {
-        doc.addPage();
-        y = 20;
-      }
+      const lines = doc.splitTextToSize(`${k}: ${v || "—"}`, 170);
+      lines.forEach((subLine) => {
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(subLine, 20, y);
+        y += 8;
+      });
+      y += 5;
     });
 
     y += 10;
+
+    // Explanation Text
     explanation.split("\n").forEach((line) => {
       const lines = doc.splitTextToSize(line, 170);
       lines.forEach((subLine) => {
@@ -50,21 +57,28 @@ export default function ExplanationCard({ result }) {
       });
     });
 
-    doc.save("bill.pdf");
+    // Save PDF with optional dynamic filename
+    const filename = structured.filename
+      ? `${structured.filename}-explanation.pdf`
+      : "bill.pdf";
+
+    doc.save(filename);
   };
 
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-6">
       <h2 className="text-3xl font-bold text-center">Your Bill Explained</h2>
 
-      <div className="grid grid-cols-2 gap-4">
-        {Object.entries(keyAmounts).map(([k, v]) => (
-          <div key={k} className="bg-indigo-100 rounded-xl p-4 text-center">
-            <p className="text-sm">{k}</p>
-            <p className="text-xl font-bold">{v || "—"}</p>
-          </div>
-        ))}
-      </div>
+      {Object.keys(keyAmounts).length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(keyAmounts).map(([k, v]) => (
+            <div key={k} className="bg-indigo-100 rounded-xl p-4 text-center">
+              <p className="text-sm">{k}</p>
+              <p className="text-xl font-bold">{v || "—"}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button
         onClick={() => setOpen(!open)}
