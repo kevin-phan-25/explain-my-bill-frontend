@@ -1,107 +1,104 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import jsPDF from "jspdf";
 
 export default function ExplanationCard({ result, onUpgrade }) {
-  const [expandedPages, setExpandedPages] = useState([]);
+  const [open, setOpen] = useState(["main"]);
 
-  if (!result || !result.pages) return null;
+  if (!result) return null;
 
-  const togglePage = (pageNum) => {
-    setExpandedPages((prev) =>
-      prev.includes(pageNum)
-        ? prev.filter((p) => p !== pageNum)
-        : [...prev, pageNum]
-    );
+  const { pages = [], isPaid } = result;
+
+  let structured = null;
+  let explanation = "";
+
+  pages.forEach(p => {
+    if (p.structured && !structured) structured = p.structured;
+    if (p.explanation) explanation += (explanation ? "\n\n" : "") + p.explanation.trim();
+  });
+
+  const keyAmounts = structured?.keyAmounts || {};
+  const points = structured?.summaryPoints || [];
+  const potentialSavings = structured?.potentialSavings;
+
+  const toggle = (s) => setOpen(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    let y = 20;
+    doc.setFontSize(20);
+    doc.text("Bill Review", 20, y);
+    y += 20;
+
+    ["Total Billed", "Insurance Paid", "You Owe"].forEach((l, i) => {
+      const v = i === 0 ? keyAmounts.totalCharges :
+                i === 1 ? keyAmounts.insurancePaid :
+                keyAmounts.patientResponsibility || "—";
+      doc.text(`${l}: ${v || "—"}`, 30, y);
+      y += 12;
+    });
+
+    y += 20;
+    doc.setFontSize(14);
+    doc.text("Explanation", 20, y);
+    y += 12;
+    doc.setFontSize(10);
+    (explanation || "Analysis complete.").split("\n").forEach(line => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(line, 20, y);
+      y += 8;
+    });
+
+    doc.save("bill.pdf");
   };
 
   return (
-    <div className="space-y-8">
-      {result.pages.map((page, idx) => (
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl"
-        >
-          <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => togglePage(page.page)}>
-            <h4 className="text-2xl font-bold text-blue-900 dark:text-white">
-              Page {page.page} Summary
-            </h4>
-            <span className="text-xl">
-              {expandedPages.includes(page.page) ? "▲" : "▼"}
-            </span>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-center">Your Review</h1>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Total Billed</p>
+          <p className="text-2xl font-bold">{keyAmounts.totalCharges || "—"}</p>
+        </div>
+        <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Insurance Paid</p>
+          <p className="text-2xl font-bold">{keyAmounts.insurancePaid || "—"}</p>
+        </div>
+        <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">You Owe</p>
+          <p className="text-2xl font-bold">{keyAmounts.patientResponsibility || "—"}</p>
+        </div>
+        <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Savings</p>
+          <p className="text-2xl font-bold">{potentialSavings || (isPaid ? "Calculated" : "Upgrade")}</p>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow">
+        <button onClick={() => toggle("main")} className="w-full flex justify-between items-center">
+          <h2 className="text-xl font-bold">Explanation</h2>
+          <span className="text-lg">{open.includes("main") ? "−" : "+"}</span>
+        </button>
+        {open.includes("main") && (
+          <div className="mt-4 space-y-3 text-base">
+            {points.length > 0 && points.map((p, i) => <p key={i} className="flex gap-2"><span>•</span> {p}</p>)}
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {explanation.split("\n\n").map((p, i) => p.trim() && <p key={i}>{p.trim()}</p>)}
+            </div>
           </div>
+        )}
+      </div>
 
-          <AnimatePresence>
-            {expandedPages.includes(page.page) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4"
-              >
-                {/* Explanation */}
-                <p className="text-gray-700 dark:text-gray-300">{page.structured.explanation}</p>
-
-                {/* Key Amounts */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  {Object.entries(page.structured.keyAmounts).map(([k, v]) => (
-                    <div key={k} className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
-                      <p className="font-bold text-gray-900 dark:text-white">{k}</p>
-                      <p className="text-blue-600 dark:text-blue-400 text-xl font-black">{v || "Not detected"}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Red Flags */}
-                {page.structured.redFlags?.length > 0 && (
-                  <div className="mt-6 bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border-l-4 border-red-600">
-                    <h5 className="font-bold text-red-800 dark:text-red-300 mb-2">⚠️ Red Flags</h5>
-                    <ul className="list-disc list-inside text-red-600 dark:text-red-300">
-                      {page.structured.redFlags.map((flag, i) => (
-                        <li key={i}>{flag}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Potential Savings */}
-                {page.structured.potentialSavings && (
-                  <div className="mt-6 bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border-l-4 border-green-600">
-                    <h5 className="font-bold text-green-800 dark:text-green-300 mb-2">💰 Potential Savings</h5>
-                    <p className="text-green-700 dark:text-green-400 font-black text-lg">{page.structured.potentialSavings}</p>
-                  </div>
-                )}
-
-                {/* Services */}
-                {page.structured.services?.length > 0 && (
-                  <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border-l-4 border-blue-600">
-                    <h5 className="font-bold text-blue-800 dark:text-blue-300 mb-2">🩺 Services Billed</h5>
-                    <ul className="list-disc list-inside text-blue-700 dark:text-blue-300">
-                      {page.structured.services.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Upgrade CTA */}
-                {!result.isPaid && (
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={onUpgrade}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition"
-                    >
-                      Unlock Full Insights
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      ))}
+      <div className="flex gap-4">
+        <button onClick={downloadPDF} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+          Download PDF
+        </button>
+        {!isPaid && (
+          <button onClick={onUpgrade} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition">
+            Unlock Full
+          </button>
+        )}
+      </div>
     </div>
   );
 }
