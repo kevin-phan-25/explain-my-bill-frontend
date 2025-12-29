@@ -81,4 +81,12 @@ export default function Testimonials() {
                 "{t.text}"
               </p>
               <p className="font-bold text-xl text-blue-900 dark:text-blue-300 text-right">
-                —
+                — {t.name}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
