@@ -1,4 +1,3 @@
-// src/App.js – FINAL PRODUCTION VERSION (Dec 29, 2025)
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import BillUploader from './components/BillUploader';
@@ -34,27 +33,27 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 py-12 shadow-2xl">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-6">ExplainMyBill</h1>
-          <p className="text-2xl text-white/90 mb-8">Understand your medical bills — instantly and privately</p>
-          <div className="inline-flex items-center gap-4 bg-white/20 backdrop-blur px-8 py-4 rounded-full border border-white/30">
-            <span className="text-3xl">🔒</span>
-            <span className="text-white font-medium text-lg">Your bill is deleted immediately — never stored</span>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 dark:from-gray-900 dark:to-indigo-950">
+      {/* Compact Header */}
+      <header className="bg-gradient-to-r from-blue-600 to-indigo-700 py-6 shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">ExplainMyBill</h1>
+          <p className="text-lg text-white/90">Instant medical bill explanations — private & free to try</p>
+          <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur px-5 py-2 rounded-full">
+            <span className="text-xl">🔒</span>
+            <span className="text-white text-sm font-medium">Deleted immediately — never stored</span>
           </div>
         </div>
       </header>
 
       {/* Main */}
-      <main className="max-w-5xl mx-auto px-6 py-16">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         ) : (
           <>
-            <div className="text-center mb-10">
-              <button onClick={reset} className="text-blue-600 dark:text-blue-400 hover:underline font-medium text-lg">
+            <div className="text-center mb-6">
+              <button onClick={reset} className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
                 ← Analyze Another Bill
               </button>
             </div>
@@ -66,43 +65,33 @@ function App() {
         )}
       </main>
 
-      {/* Testimonials */}
       <Testimonials />
-
-      {/* FAQ */}
       <FAQ />
 
-      {/* Privacy Section */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Your Privacy Comes First
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            We process your bill in memory only — nothing is saved, logged, or shared.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-10">
+      {/* Compact Privacy */}
+      <section className="max-w-4xl mx-auto px-4 py-12">
+        <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Your Privacy Is Guaranteed
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: "🔒", title: "No Storage", desc: "Deleted instantly after analysis" },
-            { icon: "🛡️", title: "No Account", desc: "No sign-up or personal info needed" },
-            { icon: "⚡", title: "Secure & Fast", desc: "All processing is private and instant" },
+            { icon: "🔒", title: "No Storage", desc: "Deleted instantly" },
+            { icon: "🛡️", title: "No Account", desc: "No sign-up needed" },
+            { icon: "⚡", title: "Secure", desc: "Private processing" },
           ].map((item, i) => (
-            <div key={i} className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-10 border border-white/30 text-center shadow-2xl">
-              <div className="text-7xl mb-6">{item.icon}</div>
-              <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
-              <p className="text-gray-600 dark:text-gray-300">{item.desc}</p>
+            <div key={i} className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-2xl p-6 text-center border border-white/20">
+              <div className="text-5xl mb-3">{item.icon}</div>
+              <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-t from-black/30 to-transparent py-12">
-        <div className="max-w-5xl mx-auto px-6 text-center text-gray-600 dark:text-gray-400">
-          <p className="text-lg">© 2025 ExplainMyBill • Educational tool • Made for patients</p>
-          <p className="text-sm mt-4">Not medical or legal advice • Privacy-first design</p>
+      <footer className="bg-gray-100 dark:bg-gray-800 py-8 mt-12">
+        <div className="max-w-4xl mx-auto px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
+          <p>© 2025 ExplainMyBill • Educational tool</p>
         </div>
       </footer>
 
