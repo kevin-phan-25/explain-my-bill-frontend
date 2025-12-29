@@ -1,16 +1,17 @@
 // src/components/ExplanationCard.js
 import React, { useState } from "react";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+// Remove this line — we're not using autoTable anymore
+// import autoTable from "jspdf-autotable";
 
 const Chevron = ({ isOpen }) => (
-  <svg className={`w-6 h-6 text-white transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className={`w-6 h-6 text-white transition ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
   </svg>
 );
 
 export default function ExplanationCard({ result, onUpgrade }) {
-  const [open, setOpen] = useState(["summary", "explanation"]);
+  const [open, setOpen] = useState(["main"]);
 
   if (!result) return null;
 
@@ -36,7 +37,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
   const redFlags = structured?.redFlags || [];
   const potentialSavings = structured?.potentialSavings;
 
-  const hasAnalysis = structured || explanation.length > 20;
   const hasRawText = rawText.length > 50;
 
   const toggle = (section) => {
@@ -57,29 +57,35 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
     y = 80;
 
-    doc.autoTable({
-      startY: y,
-      head: [["Category", "Amount"]],
-      body: [
+    if (structured) {
+      doc.setFontSize(16);
+      doc.text("Financial Summary", 20, y);
+      y += 15;
+
+      const items = [
         ["Total Billed", keyAmounts.totalCharges || "Not detected"],
         ["Insurance Paid", keyAmounts.insurancePaid || "Not detected"],
         ["You Owe", keyAmounts.patientResponsibility || "Not detected"],
         ["Potential Savings", potentialSavings || (isPaid ? "Calculated" : "Upgrade to view")],
-      ],
-      theme: "grid",
-      headStyles: { fillColor: [30, 60, 120] },
-    });
+      ];
 
-    y = doc.lastAutoTable.finalY + 20;
+      items.forEach(([label, value]) => {
+        doc.text(label + ":", 30, y);
+        doc.text(value, 100, y);
+        y += 12;
+      });
+      y += 20;
+    }
 
     doc.setFontSize(16);
     doc.text("Explanation", 20, y);
-    y += 10;
+    y += 15;
     doc.setFontSize(11);
-    doc.splitTextToSize(explanation || "Analysis complete.", 170).forEach(line => {
+    const expText = explanation || (hasRawText ? "We found text in your bill and are generating a full explanation." : "No text detected.");
+    doc.splitTextToSize(expText, 170).forEach(line => {
       if (y > 280) { doc.addPage(); y = 20; }
       doc.text(line, 20, y);
-      y += 7;
+      y += 8;
     });
 
     doc.save("ExplainMyBill_Report.pdf");
@@ -99,7 +105,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
           </p>
         </div>
 
-        {/* Key Financial Summary – Front and Center */}
+        {/* Key Financial Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
           {[
             { label: "Total Billed", value: keyAmounts.totalCharges || "Not detected", color: "from-blue-600 to-cyan-500" },
@@ -123,7 +129,6 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
         {/* Main Accordion */}
         <div className="space-y-8">
-
           {/* Explanation */}
           <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br from-slate-800/90 to-indigo-900/50">
             <button onClick={() => toggle("explanation")} className="w-full p-8 flex justify-between items-center hover:bg-white/5 transition">
