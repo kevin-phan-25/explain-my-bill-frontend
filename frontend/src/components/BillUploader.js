@@ -38,7 +38,7 @@ export default function BillUploader({ onResult, onLoading }) {
       const result = await uploadBillToAPI(file);
       onResult(result);
     } catch (err) {
-      setError(err.message || "Upload failed – please try again");
+      setError(err.message);
     } finally {
       setUploading(false);
       onLoading(false);
@@ -46,67 +46,68 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-        <h2 className="text-3xl font-bold text-center text-blue-900 mb-8">
+    <div className="max-w-3xl mx-auto">
+      <div className="bg-white rounded-3xl shadow-2xl p-10">
+        <h2 className="text-4xl font-black text-center text-blue-900 mb-10">
           Upload Your Medical Bill
         </h2>
 
-        {/* Pro Tip – Critical for OCR success */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 mb-8">
-          <h3 className="font-bold text-green-900 text-lg mb-4">For Best Results:</h3>
-          <ul className="space-y-3 text-green-800">
-            <li className="flex items-start gap-3">
-              <span className="text-2xl">📸</span>
-              <div>
-                <strong>Take a clear photo</strong> of the main summary page of your bill
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-2xl">🖼️</span>
-              <div>
-                Upload as <strong>JPG or PNG</strong> — works much better than scanned PDFs
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-2xl">☀️</span>
-              <div>
-                Good lighting, no shadows — make sure amounts and dates are readable
-              </div>
-            </li>
-          </ul>
+        {/* Pro Tip – Most important for success */}
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl p-8 mb-10">
+          <h3 className="text-2xl font-bold text-emerald-900 text-center mb-6">
+            For the Best Results:
+          </h3>
+          <div className="grid md:grid-cols-3 gap-8 text-emerald-800">
+            <div className="text-center">
+              <div className="text-6xl mb-4">📸</div>
+              <p className="font-bold">Take a clear photo</p>
+              <p className="text-sm mt-2">of the summary page</p>
+            </div>
+            <div className="text-center">
+              <div className="text-6xl mb-4">☀️</div>
+              <p className="font-bold">Good lighting</p>
+              <p className="text-sm mt-2">no shadows or glare</p>
+            </div>
+            <div className="text-center">
+              <div className="text-6xl mb-4">🖼️</div>
+              <p className="font-bold">JPG or PNG</p>
+              <p className="text-sm mt-2">works best</p>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="border-4 border-dashed border-blue-300 rounded-2xl p-12 text-center hover:border-blue-500 transition">
+          <div className="border-4 border-dashed border-blue-400 rounded-3xl p-16 text-center hover:border-blue-600 transition">
             <input
               type="file"
               accept="image/*,application/pdf"
               onChange={handleFileChange}
               className="hidden"
-              id="bill-input"
+              id="upload-input"
               disabled={uploading}
             />
-            <label htmlFor="bill-input" className="cursor-pointer block">
+            <label htmlFor="upload-input" className="cursor-pointer block">
               {file ? (
-                <div>
-                  <p className="text-2xl font-bold text-blue-900 mb-2">{file.name}</p>
-                  <p className="text-blue-600">Click to change file</p>
+                <div className="space-y-4">
+                  <p className="text-3xl font-bold text-blue-900">{file.name}</p>
+                  <p className="text-xl text-blue-600">Click to change</p>
                 </div>
               ) : (
-                <div>
-                  <div className="text-8xl mb-6">📄</div>
-                  <p className="text-2xl font-bold text-blue-900 mb-2">
-                    Click to upload your bill
+                <div className="space-y-6">
+                  <div className="text-9xl">📄</div>
+                  <p className="text-3xl font-bold text-blue-900">
+                    Click to upload
                   </p>
-                  <p className="text-blue-700">JPG, PNG, or PDF • Max 20MB</p>
+                  <p className="text-xl text-blue-700">
+                    JPG, PNG, or PDF • Max 20MB
+                  </p>
                 </div>
               )}
             </label>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-300 rounded-xl p-4 text-red-800 text-center font-medium">
+            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 text-red-800 text-center text-lg font-semibold">
               {error}
             </div>
           )}
@@ -114,7 +115,7 @@ export default function BillUploader({ onResult, onLoading }) {
           <button
             type="submit"
             disabled={!file || uploading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold text-2xl py-6 rounded-2xl shadow-xl hover:shadow-2xl disabled:opacity-60 disabled:cursor-not-allowed transition transform hover:scale-105"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black text-3xl py-8 rounded-3xl shadow-2xl hover:shadow-indigo-500/50 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
           >
             {uploading ? "Analyzing Your Bill..." : "Explain My Bill"}
           </button>
