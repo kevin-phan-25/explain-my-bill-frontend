@@ -38,7 +38,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   const { pages = [], isPaid } = result;
 
-  /* ================= Normalize ALL text ================= */
+  /* ================= Normalize ================= */
   let structured = null;
   let explanationText = "";
   let ocrText = "";
@@ -46,41 +46,19 @@ export default function ExplanationCard({ result, onUpgrade }) {
   pages.forEach((p) => {
     if (p?.structured && !structured) structured = p.structured;
     if (p?.explanation) explanationText += `${p.explanation}\n\n`;
-    if (p?.ocrText || p?.rawText)
-      ocrText += `${p.ocrText || p.rawText}\n\n`;
+    if (p?.rawText) ocrText += `${p.rawText}\n\n`;
   });
 
   explanationText = explanationText.trim();
   ocrText = ocrText.trim();
 
   const keyAmounts = structured?.keyAmounts || {};
-  const services = structured?.services || [];
-  const redFlags = structured?.redFlags || [];
   const summaryPoints = structured?.summaryPoints || [];
-  const nextSteps =
-    structured?.nextSteps || [
-      "Request an itemized bill",
-      "Verify CPT codes",
-      "Compare charges using FairHealthConsumer.org",
-      "Call provider billing department",
-      "File an insurance appeal",
-    ];
 
-  const totalCharges = cleanValue(
-    keyAmounts.totalCharges,
-    structured?.totalCharges,
-    explanationText
-  );
-
-  const insurancePaid = cleanValue(
-    keyAmounts.insurancePaid,
-    structured?.insurancePaid,
-    explanationText
-  );
-
+  const totalCharges = cleanValue(keyAmounts.totalCharges, explanationText);
+  const insurancePaid = cleanValue(keyAmounts.insurancePaid, explanationText);
   const patientResponsibility = cleanValue(
     keyAmounts.patientResponsibility,
-    structured?.patientResponsibility,
     explanationText
   );
 
@@ -92,7 +70,7 @@ export default function ExplanationCard({ result, onUpgrade }) {
   const finalExplanation =
     cleanValue(explanationText) ||
     cleanValue(ocrText) ||
-    "We could not automatically summarize this bill, but the full OCR text is shown below.";
+    "We could not automatically summarize this bill, but the OCR text is shown below.";
 
   /* ================= PDF ================= */
   const handlePDF = () => {
@@ -126,10 +104,10 @@ export default function ExplanationCard({ result, onUpgrade }) {
       ["Potential Savings", potentialSavings],
     ];
 
-    rows.forEach(([l, v]) => {
+    rows.forEach(([label, value]) => {
       pageBreak();
-      doc.text(`${l}:`, M, y);
-      doc.text(v || "See explanation below", M + 70, y);
+      doc.text(`${label}:`, M, y);
+      doc.text(value || "See explanation below", M + 70, y);
       y += 8;
     });
 
@@ -235,3 +213,4 @@ export default function ExplanationCard({ result, onUpgrade }) {
     </div>
   );
 }
+
