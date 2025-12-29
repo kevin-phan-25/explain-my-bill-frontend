@@ -8,13 +8,18 @@ import FAQ from "./components/FAQ";
 import UpgradeModal from "./components/UpgradeModal";
 import Loader from "./components/Loader";
 
+// Load Stripe
 const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+
+// 🔧 DEV MODE / TEST BYPASS FLAG
+// You can add ?dev=true to bypass upgrade modal on any URL
 const DEV_MODE =
   window.location.hostname === "localhost" ||
-  window.location.hostname.includes("127.0.0.1");
+  window.location.hostname.includes("127.0.0.1") ||
+  new URL(window.location.href).searchParams.get("dev") === "true";
 
-export default function App() {
+function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -29,6 +34,7 @@ export default function App() {
   const processBill = async (file) => {
     setLoading(true);
     abortRef.current = new AbortController();
+
     const form = new FormData();
     form.append("bill", file);
 
@@ -41,14 +47,19 @@ export default function App() {
       });
 
       if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+
       const data = await res.json();
 
+      // DEV OVERRIDE: treat as paid for testing
       if (DEV_MODE) data.isPaid = true;
 
       console.log("ExplainMyBill response:", data);
       setResult(data);
 
-      if (!DEV_MODE && !data?.isPaid) setShowUpgrade(true);
+      // Show upgrade modal only in PROD and unpaid
+      if (!DEV_MODE && !data?.isPaid) {
+        setShowUpgrade(true);
+      }
     } catch (e) {
       console.error("Bill processing failed:", e);
       alert("Something went wrong. Check console.");
@@ -88,7 +99,7 @@ export default function App() {
               </button>
             </div>
 
-            <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
+            <ExplanationCard result={result} />
 
             {result?.isPaid && result.pages?.[0]?.structured && (
               <PaidFeatures features={result.pages[0].structured} />
@@ -128,7 +139,16 @@ export default function App() {
       </footer>
 
       {loading && <Loader />}
-      {showUpgrade && !DEV_MODE && <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />}
+
+      {/* Upgrade modal only in PROD */}
+      {showUpgrade && !DEV_MODE && (
+        <UpgradeModal
+          onClose={() => setShowUpgrade(false)}
+          stripePromise={stripePromise}
+        />
+      )}
     </div>
   );
 }
+
+export default App;
