@@ -5,6 +5,9 @@ import ConfidenceTooltip from "./ConfidenceTooltip";
 import ConfidenceLegendModal from "./ConfidenceLegendModal";
 import LowConfidenceFlag from "./LowConfidenceFlag";
 import FieldAIExplanation from "./FieldAIExplanation";
+import ReportIncorrectAmount from "./ReportIncorrectAmount";
+import ConfidenceGate from "./ConfidenceGate";
+import DisputeLetterGenerator from "./DisputeLetterGenerator";
 
 export default function ExplanationCard({ result }) {
   const [open, setOpen] = useState(true);
@@ -23,45 +26,14 @@ export default function ExplanationCard({ result }) {
   const points = structured.summaryPoints || [];
   const nextSteps = structured.nextSteps || [];
 
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-    let y = 20;
-    const pageHeight = doc.internal.pageSize.height;
-
-    doc.setFontSize(18);
-    doc.text("Bill Explanation", 20, y);
-    y += 15;
-
-    Object.entries(keyAmounts).forEach(([k, v]) => {
-      if (!v || typeof v !== "object") return;
-
-      const line = `${k}: ${v.value || "—"} (${Math.round(
-        (v.confidence || 0) * 100
-      )}% confidence)`;
-
-      doc.splitTextToSize(line, 170).forEach((l) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(l, 20, y);
-        y += 8;
-      });
-
-      if (v.aiExplanation) {
-        doc.setFontSize(10);
-        doc.text(`Why this may be wrong: ${v.aiExplanation}`, 20, y);
-        y += 10;
-        doc.setFontSize(12);
-      }
-    });
-
-    doc.save("bill-explanation.pdf");
-  };
-
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-6 relative">
       <h2 className="text-3xl font-bold text-center">Your Bill Explained</h2>
+
+      <p className="text-xs text-center text-gray-500">
+        Educational use only. No medical, legal, or billing advice. Files are
+        processed transiently and never stored.
+      </p>
 
       <button
         onClick={() => setShowLegend(true)}
@@ -70,7 +42,6 @@ export default function ExplanationCard({ result }) {
         What do confidence scores mean?
       </button>
 
-      {/* Key Amount Cards */}
       <div className="grid grid-cols-2 gap-4">
         {Object.entries(keyAmounts).map(([k, v]) => {
           if (!v || typeof v !== "object") return null;
@@ -85,7 +56,10 @@ export default function ExplanationCard({ result }) {
               <p className="text-sm capitalize">
                 {k.replace(/([A-Z])/g, " $1")}
               </p>
-              <p className="text-xl font-bold">{v.value || "—"}</p>
+
+              <ConfidenceGate confidence={v.confidence}>
+                <p className="text-xl font-bold">{v.value || "—"}</p>
+              </ConfidenceGate>
 
               <p className="text-xs text-gray-600 mt-1">
                 {Math.round((v.confidence || 0) * 100)}% confidence
@@ -93,6 +67,13 @@ export default function ExplanationCard({ result }) {
 
               <LowConfidenceFlag confidence={v.confidence} />
               <FieldAIExplanation explanation={v.aiExplanation} />
+
+              <ReportIncorrectAmount field={k} value={v.value} />
+              <DisputeLetterGenerator
+                field={k}
+                value={v.value}
+                confidence={v.confidence}
+              />
 
               {hovered === k && (
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2">
@@ -133,13 +114,6 @@ export default function ExplanationCard({ result }) {
           )}
         </div>
       )}
-
-      <button
-        onClick={downloadPDF}
-        className="w-full bg-indigo-600 text-white py-3 rounded-xl"
-      >
-        Download PDF
-      </button>
 
       {showLegend && (
         <ConfidenceLegendModal onClose={() => setShowLegend(false)} />
