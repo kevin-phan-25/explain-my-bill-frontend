@@ -1,17 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1e40af" />
-    <meta name="description" content="ExplainMyBill – Get clear, simple explanations of your medical bills instantly. Secure. Private. No data stored." />
-    <title>ExplainMyBill – Understand Your Medical Bills</title>
+    <meta name="description" content="ExplainMyBill – Instant, clear, private medical bill explanations. No data stored." />
+    <title>ExplainMyBill – Clear Medical Bills</title>
+
+    <!-- Stripe -->
     <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- Inter Font – Clean & Modern -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Dark Mode Detection -->
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
+
+    <style>
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .dark {
+        color-scheme: dark;
+      }
+    </style>
   </head>
-  <body class="bg-gray-50 min-h-screen font-sans">
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+  <body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <noscript>
+      <div class="flex items-center justify-center min-h-screen text-center p-8">
+        <p class="text-xl">JavaScript is required to use ExplainMyBill.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>
