@@ -1,9 +1,11 @@
+// src/App.js – FINAL PRODUCTION VERSION (Dec 29, 2025)
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import BillUploader from './components/BillUploader';
 import ExplanationCard from './components/ExplanationCard';
 import PaidFeatures from './components/PaidFeatures';
 import Testimonials from './components/Testimonials';
+import FAQ from './components/FAQ';
 import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
 
@@ -57,13 +59,18 @@ function App() {
               </button>
             </div>
             <ExplanationCard result={result} onUpgrade={() => setShowUpgrade(true)} />
-            {result.isPaid && <PaidFeatures features={result.pages[0]?.structured} />}
+            {result.isPaid && result.pages[0]?.structured && (
+              <PaidFeatures features={result.pages[0].structured} />
+            )}
           </>
         )}
       </main>
 
       {/* Testimonials */}
       <Testimonials />
+
+      {/* FAQ */}
+      <FAQ />
 
       {/* Privacy Section */}
       <section className="max-w-5xl mx-auto px-6 py-20">
@@ -95,6 +102,7 @@ function App() {
       <footer className="bg-gradient-to-t from-black/30 to-transparent py-12">
         <div className="max-w-5xl mx-auto px-6 text-center text-gray-600 dark:text-gray-400">
           <p className="text-lg">© 2025 ExplainMyBill • Educational tool • Made for patients</p>
+          <p className="text-sm mt-4">Not medical or legal advice • Privacy-first design</p>
         </div>
       </footer>
 
