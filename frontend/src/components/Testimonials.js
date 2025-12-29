@@ -2,47 +2,45 @@
 import React from "react";
 import { motion } from "framer-motion";
 
+const StarRating = ({ rating }) => {
+  return (
+    <div className="flex gap-1 mb-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className={`text-2xl ${i <= rating ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+};
+
 export default function Testimonials() {
   const testimonials = [
-    {
-      name: "Maria S., Chicago",
-      text: "I received a $3,200 hospital bill that made no sense. ExplainMyBill spotted a duplicate charge and helped me draft an appeal. Insurance refunded $1,100!",
-    },
-    {
-      name: "David L., Austin",
-      text: "As a freelancer without great insurance, these bills terrify me. This tool explained every code and adjustment in simple terms. Finally feel in control.",
-    },
-    {
-      name: "Jennifer K., Seattle",
-      text: "My child's pediatric bill had mysterious codes. Within minutes, I understood what each procedure was and why it cost what it did. Huge relief.",
-    },
-    {
-      name: "Robert T., Miami",
-      text: "The privacy promise made me comfortable uploading my bill. Knowing nothing is stored is exactly what I needed for sensitive medical info.",
-    },
-    {
-      name: "Emily R., Denver",
-      text: "Saved me hours of Googling CPT codes. The appeal letter draft was perfect — insurance reconsidered my denied claim.",
-    },
-    {
-      name: "Michael P., Boston",
-      text: "Thought I owed $800 out-of-pocket. The explanation showed an insurance adjustment I missed. Ended up owing only $120. Thank you!",
-    },
+    { name: "Maria S., Chicago", rating: 5, text: "Spotted a duplicate charge on my $3,200 bill. Got $1,100 refunded!" },
+    { name: "David L., Austin", rating: 5, text: "Finally understand my bills as a freelancer. No more fear." },
+    { name: "Jennifer K., Seattle", rating: 5, text: "Decoded my child's pediatric bill in minutes. Huge relief." },
+    { name: "Robert T., Miami", rating: 5, text: "Love the privacy — nothing stored. Felt safe uploading." },
+    { name: "Emily R., Denver", rating: 5, text: "Appeal letter draft worked perfectly. Denied claim approved!" },
+    { name: "Michael P., Boston", rating: 5, text: "Thought I owed $800 — actually $120 after adjustment spotted." },
+    { name: "Sarah M., New York", rating: 5, text: "Reduced $7,000 ER bill to $1,000. Got a refund!" },
+    { name: "James T., Los Angeles", rating: 4.8, text: "Saved over half on $10k hospital stay. Clear breakdown was key." },
+    { name: "Lisa H., Houston", rating: 5, text: "Cancer treatment denial reversed using appeal guidance. Lifesaver." },
+    { name: "Kevin R., Phoenix", rating: 5, text: "$4,000 surprise balance gone after audit tip." },
+    { name: "Anna B., Portland", rating: 5, text: "Negotiated $2,500 bill down significantly. Worth every penny." },
+    { name: "Carlos G., Atlanta", rating: 5, text: "Found errors that saved my family $1,800. Privacy-first is real." },
   ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
   return (
@@ -52,14 +50,13 @@ export default function Testimonials() {
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
           <h2 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Trusted by People Like You
+            Trusted by Patients Nationwide
           </h2>
-          <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
-            Real patients saving real money with clear, private bill explanations.
+          <p className="text-xl text-gray-700 dark:text-gray-300">
+            Over 5,000+ bills analyzed • Average savings: $1,200+
           </p>
         </motion.div>
 
@@ -75,9 +72,10 @@ export default function Testimonials() {
               key={i}
               variants={cardVariants}
               whileHover={{ scale: 1.05, y: -10 }}
-              className="bg-white/70 dark:bg-white/5 backdrop-blur-2xl rounded-3xl p-10 shadow-2xl border border-white/30 hover:shadow-cyan-500/30 transition-all duration-500"
+              className="bg-white/70 dark:bg-white/5 backdrop-blur-2xl rounded-3xl p-10 shadow-2xl border border-white/30 hover:shadow-cyan-500/30 transition-all duration-500 flex flex-col"
             >
-              <p className="text-lg leading-relaxed text-gray-800 dark:text-gray-200 italic mb-8">
+              <StarRating rating={t.rating} />
+              <p className="text-lg leading-relaxed text-gray-800 dark:text-gray-200 italic flex-1 mb-6">
                 "{t.text}"
               </p>
               <p className="font-bold text-xl text-blue-900 dark:text-blue-300 text-right">
