@@ -34,7 +34,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 dark:from-gray-900 dark:to-indigo-950">
-      {/* Compact Header */}
       <header className="bg-gradient-to-r from-blue-600 to-indigo-700 py-6 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-white mb-2">ExplainMyBill</h1>
@@ -46,7 +45,6 @@ function App() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
@@ -68,7 +66,6 @@ function App() {
       <Testimonials />
       <FAQ />
 
-      {/* Compact Privacy */}
       <section className="max-w-4xl mx-auto px-4 py-12">
         <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Your Privacy Is Guaranteed
@@ -88,7 +85,6 @@ function App() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-100 dark:bg-gray-800 py-8 mt-12">
         <div className="max-w-4xl mx-auto px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
           <p>© 2025 ExplainMyBill • Educational tool</p>
