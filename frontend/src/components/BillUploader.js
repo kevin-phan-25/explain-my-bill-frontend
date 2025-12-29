@@ -13,7 +13,7 @@ export default function BillUploader({ onResult, onLoading }) {
       setFile(f);
       setError("");
     } else if (f) {
-      setError("File too large (max 20MB)");
+      setError("Max 20MB");
     }
   };
 
@@ -31,17 +31,13 @@ export default function BillUploader({ onResult, onLoading }) {
 
       const res = await fetch(WORKER_URL, { method: "POST", body: form });
       const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid response");
-      }
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      const data = JSON.parse(text);
+
+      if (!res.ok) throw new Error(data.error || "Failed");
 
       onResult(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Upload failed");
     } finally {
       setUploading(false);
       onLoading(false);
@@ -49,28 +45,34 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
-      <h2 className="text-3xl font-bold text-center text-blue-900 mb-6">Upload Your Bill</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+      <h2 className="text-2xl font-bold text-center mb-4">Upload Bill</h2>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-center text-blue-900">
-        <p className="font-medium">Tip: Use a clear photo of the summary page (JPG/PNG)</p>
-      </div>
+      <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Best: Clear photo of summary page
+      </p>
 
-      <form onSubmit={handleSubmit}>
-        <div className="border-2 border-dashed border-blue-400 rounded-xl p-10 text-center">
-          <input type="file" accept="image/*,application/pdf" onChange={handleChange} className="hidden" id="upload" />
-          <label htmlFor="upload" className="cursor-pointer">
-            {file ? <p className="text-2xl font-bold text-blue-900">{file.name}</p> : <p className="text-2xl font-bold text-blue-900">Click to upload</p>}
-            <p className="text-blue-600 mt-2">JPG • PNG • PDF • Max 20MB</p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
+          <input type="file" accept="image/*,application/pdf" onChange={handleChange} className="hidden" id="file" />
+          <label htmlFor="file" className="cursor-pointer">
+            {file ? (
+              <p className="font-semibold text-lg">{file.name}</p>
+            ) : (
+              <div>
+                <p className="font-semibold text-lg">Tap to upload</p>
+                <p className="text-sm text-gray-500 mt-2">JPG • PNG • PDF</p>
+              </div>
+            )}
           </label>
         </div>
 
-        {error && <p className="text-red-600 text-center mt-4 font-bold">{error}</p>}
+        {error && <p className="text-red-600 text-center font-medium">{error}</p>}
 
         <button
           type="submit"
           disabled={!file || uploading}
-          className="w-full mt-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold text-2xl py-5 rounded-xl disabled:opacity-50"
+          className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 transition"
         >
           {uploading ? "Analyzing..." : "Explain My Bill"}
         </button>
