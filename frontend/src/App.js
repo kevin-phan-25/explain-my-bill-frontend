@@ -8,13 +8,9 @@ import FAQ from "./components/FAQ";
 import UpgradeModal from "./components/UpgradeModal";
 import Loader from "./components/Loader";
 
-const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
-const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+import { uploadBill, createCheckoutSession, isDevMode } from "./api/explainApi";
 
-// 🔧 DEV MODE FLAG (safe + explicit)
-const DEV_MODE =
-  window.location.hostname === "localhost" ||
-  window.location.hostname.includes("127.0.0.1");
+const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
 
 function App() {
   const [result, setResult] = useState(null);
@@ -29,45 +25,23 @@ function App() {
   };
 
   const processBill = async (file) => {
-    if (!file) return;
-
     setLoading(true);
     abortRef.current = new AbortController();
 
-    const form = new FormData();
-    form.append("bill", file);
-
     try {
-      const res = await fetch(WORKER_URL, {
-        method: "POST",
-        body: form,
-        signal: abortRef.current.signal,
-        headers: DEV_MODE ? { "X-Dev-Bypass": "true" } : {},
-      });
+      const data = await uploadBill(file);
 
-      if (!res.ok) {
-        // Read error text if available
-        const errText = await res.text().catch(() => res.statusText);
-        throw new Error(`Upload failed: ${res.status} ${errText}`);
-      }
+      // FORCE unlock in dev
+      if (isDevMode()) data.isPaid = true;
 
-      const data = await res.json().catch(() => {
-        throw new Error("Invalid JSON returned from server");
-      });
-
-      // 🔓 DEV MODE unlock
-      if (DEV_MODE) data.isPaid = true;
-
-      console.log("ExplainMyBill response:", data);
       setResult(data);
 
-      // Show upgrade modal only in PROD when unpaid
-      if (!DEV_MODE && !data?.isPaid) {
+      if (!isDevMode() && !data?.isPaid) {
         setShowUpgrade(true);
       }
-    } catch (e) {
-      console.error("Bill processing failed:", e);
-      alert(`Something went wrong. ${e.message}`);
+    } catch (err) {
+      console.error("Bill processing failed:", err);
+      alert(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +68,10 @@ function App() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {!result ? (
-          <BillUploader onResult={processBill} onLoading={setLoading} />
+          <BillUploader
+            onResult={processBill}
+            onLoading={setLoading}
+          />
         ) : (
           <>
             <div className="text-center mb-6">
@@ -111,9 +88,12 @@ function App() {
               onUpgrade={() => setShowUpgrade(true)}
             />
 
-            {result?.isPaid && result.pages?.[0]?.structured && (
-              <PaidFeatures features={result.pages[0].structured} />
-            )}
+            {result?.isPaid &&
+              result.pages?.[0]?.structured && (
+                <PaidFeatures
+                  features={result.pages[0].structured}
+                />
+              )}
           </>
         )}
       </main>
@@ -150,7 +130,7 @@ function App() {
 
       {loading && <Loader />}
 
-      {showUpgrade && !DEV_MODE && (
+      {showUpgrade && !isDevMode() && (
         <UpgradeModal
           onClose={() => setShowUpgrade(false)}
           stripePromise={stripePromise}
