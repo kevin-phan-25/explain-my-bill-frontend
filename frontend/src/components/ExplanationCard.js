@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import jsPDF from "jspdf";
 import ConfidenceHeatMap from "./ConfidenceHeatMap";
 import ConfidenceTooltip from "./ConfidenceTooltip";
@@ -16,10 +16,11 @@ export default function ExplanationCard({ result }) {
 
   if (!result?.pages?.length) {
     return (
-      <div className="max-w-3xl mx-auto mt-10">
-        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] p-8">
-          <p className="text-center text-white/80">No data returned.</p>
-        </div>
+      <div className="max-w-3xl mx-auto mt-10 p-6 rounded-2xl border border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur shadow-xl text-center">
+        <p className="text-gray-700 dark:text-gray-200 font-medium">No data returned.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Try uploading a clearer file (PDF text layer preferred) or a sharper image.
+        </p>
       </div>
     );
   }
@@ -32,362 +33,272 @@ export default function ExplanationCard({ result }) {
   const points = structured.summaryPoints || [];
   const nextSteps = structured.nextSteps || [];
 
-  // ======= Helpers (UI + Trust) =======
-  const fields = useMemo(() => {
-    const entries = Object.entries(keyAmounts || {}).filter(
-      ([, v]) => v && typeof v === "object"
-    );
+  const sourceType = structured?.confidenceMeta?.sourceType || "unknown";
+  const usedOCR = Boolean(structured?.confidenceMeta?.usedOCR);
 
-    // nice ordering if present
-    const order = ["totalCharges", "insurancePaid", "patientResponsibility"];
-    entries.sort((a, b) => {
-      const ia = order.indexOf(a[0]);
-      const ib = order.indexOf(b[0]);
-      if (ia === -1 && ib === -1) return a[0].localeCompare(b[0]);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
+  const niceLabel = (k) =>
+    k
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (c) => c.toUpperCase())
+      .replace("Usd", "USD");
 
-    return entries;
-  }, [keyAmounts]);
+  const confidenceTone = (c = 0) => {
+    if (c >= 0.8) return "border-emerald-400/30 bg-emerald-500/10";
+    if (c >= 0.55) return "border-sky-400/30 bg-sky-500/10";
+    if (c >= 0.35) return "border-amber-400/30 bg-amber-500/10";
+    return "border-rose-400/30 bg-rose-500/10";
+  };
 
-  const trustBadges = useMemo(() => {
-    const sourceType = structured?.confidenceMeta?.sourceType || "unknown";
-    const usedOCR = Boolean(structured?.confidenceMeta?.usedOCR);
-    return {
-      sourceType,
-      usedOCR,
-      transient: true,
-      noLogin: true,
-    };
-  }, [structured]);
+  const confidenceDot = (c = 0) => {
+    if (c >= 0.8) return "bg-emerald-400";
+    if (c >= 0.55) return "bg-sky-400";
+    if (c >= 0.35) return "bg-amber-400";
+    return "bg-rose-400";
+  };
 
-  function humanLabel(key) {
-    if (key === "totalCharges") return "Total Charges";
-    if (key === "insurancePaid") return "Insurance Paid";
-    if (key === "patientResponsibility") return "Patient Responsibility";
-    return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
-  }
-
-  function confidenceTier(c = 0) {
-    if (c >= 0.85) return { label: "High", ring: "ring-emerald-400/40", glow: "shadow-[0_0_0_1px_rgba(52,211,153,0.25),0_20px_50px_rgba(0,0,0,0.35)]" };
-    if (c >= 0.6) return { label: "Medium", ring: "ring-sky-400/40", glow: "shadow-[0_0_0_1px_rgba(56,189,248,0.25),0_20px_50px_rgba(0,0,0,0.35)]" };
-    return { label: "Low", ring: "ring-amber-400/40", glow: "shadow-[0_0_0_1px_rgba(251,191,36,0.25),0_20px_50px_rgba(0,0,0,0.35)]" };
-  }
-
-  function downloadPDF() {
-    try {
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
-      const margin = 48;
-      let y = margin;
-
-      const title = "ExplainMyBill — Summary (Educational Use Only)";
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text(title, margin, y);
-      y += 22;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const metaLine = `Processed transiently • Not medical/legal/billing advice • Source: ${
-        structured?.confidenceMeta?.sourceType || "unknown"
-      }${structured?.confidenceMeta?.usedOCR ? " • OCR used" : ""}`;
-      doc.text(metaLine, margin, y);
-      y += 18;
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("Key Amounts", margin, y);
-      y += 14;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-
-      const amountLines = fields.map(([k, v]) => {
-        const pct = Math.round((v?.confidence || 0) * 100);
-        return `${humanLabel(k)}: ${v?.value || "—"}  (${pct}% confidence)`;
-      });
-
-      amountLines.forEach((line) => {
-        const wrapped = doc.splitTextToSize(line, 520);
-        doc.text(wrapped, margin, y);
-        y += wrapped.length * 14;
-      });
-
-      y += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Explanation", margin, y);
-      y += 14;
-
-      doc.setFont("helvetica", "normal");
-      const expl = doc.splitTextToSize(explanation || "", 520);
-      doc.text(expl, margin, y);
-      y += Math.min(expl.length * 14, 280);
-
-      if (nextSteps?.length) {
-        y += 10;
-        doc.setFont("helvetica", "bold");
-        doc.text("Next Steps", margin, y);
-        y += 14;
-
-        doc.setFont("helvetica", "normal");
-        nextSteps.forEach((s) => {
-          const wrapped = doc.splitTextToSize(`• ${s}`, 520);
-          doc.text(wrapped, margin, y);
-          y += wrapped.length * 14;
-        });
-      }
-
-      doc.save("ExplainMyBill-Summary.pdf");
-    } catch (e) {
-      console.error("PDF export failed:", e);
-      alert("PDF export failed. Check console for details.");
-    }
-  }
+  const fields = Object.entries(keyAmounts).filter(([, v]) => v && typeof v === "object");
 
   return (
     <div className="relative">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute -inset-8 opacity-60 blur-3xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-cyan-500/10 to-fuchsia-500/20" />
-      </div>
+      {/* Ambient futuristic glow */}
+      <div className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(60%_60%_at_50%_20%,rgba(99,102,241,0.22),transparent_60%),radial-gradient(50%_50%_at_10%_80%,rgba(168,85,247,0.18),transparent_55%),radial-gradient(60%_60%_at_90%_80%,rgba(34,211,238,0.14),transparent_55%)] blur-2xl" />
 
-      <div className="relative max-w-5xl mx-auto">
-        {/* Header Card */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] overflow-hidden">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/80">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
-                  Live Analysis • Transient Processing
-                </div>
-
-                <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                  Your Bill Explained
-                </h2>
-
-                <p className="mt-2 text-sm text-white/70 max-w-3xl">
-                  Educational use only — not medical, legal, or billing advice. Files are processed
-                  transiently in-memory and never stored.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
-                <button
-                  onClick={() => setShowLegend(true)}
-                  className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm text-white/85 hover:bg-white/15 transition"
-                >
-                  Confidence Guide
-                </button>
-
-                <button
-                  onClick={downloadPDF}
-                  className="rounded-xl bg-white text-gray-900 px-4 py-2 text-sm font-semibold hover:bg-white/90 transition"
-                >
-                  Download Summary PDF
-                </button>
-              </div>
+      <div className="relative max-w-3xl mx-auto rounded-[2rem] border border-white/20 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+        {/* Top header */}
+        <div className="px-6 sm:px-8 py-6 border-b border-black/5 dark:border-white/10 bg-gradient-to-r from-white/40 to-white/10 dark:from-white/5 dark:to-white/0">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                Your Bill Explained
+              </h2>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Educational use only. No medical, legal, or billing advice. Files are processed transiently and never stored.
+              </p>
             </div>
 
-            {/* Trust row */}
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <p className="text-[11px] text-white/60">Storage</p>
-                <p className="text-sm font-semibold text-white">None</p>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2">
+                <span className="text-lg">🔒</span>
+                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                  Privacy-first
+                </span>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <p className="text-[11px] text-white/60">Login</p>
-                <p className="text-sm font-semibold text-white">Not required</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <p className="text-[11px] text-white/60">Text source</p>
-                <p className="text-sm font-semibold text-white">
-                  {trustBadges.sourceType}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <p className="text-[11px] text-white/60">OCR</p>
-                <p className="text-sm font-semibold text-white">
-                  {trustBadges.usedOCR ? "Used" : "Not used"}
-                </p>
+
+              <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2">
+                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                  Source: {sourceType}{usedOCR ? " (OCR)" : ""}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <button
+            onClick={() => setShowLegend(true)}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300 hover:underline"
+          >
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/15 border border-indigo-500/20">
+              i
+            </span>
+            What do confidence scores mean?
+          </button>
+        </div>
 
-          {/* Amount Cards */}
-          <div className="p-6 sm:p-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {fields.map(([k, v]) => {
-                const c = Number(v?.confidence || 0);
-                const tier = confidenceTier(c);
-                const pct = Math.round(c * 100);
+        {/* Key amounts */}
+        <div className="px-6 sm:px-8 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Key amounts detected
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Hover a card to see extraction source. Low confidence means “verify on the original bill.”
+              </p>
+            </div>
 
-                return (
-                  <div
-                    key={k}
-                    className={[
-                      "relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 overflow-hidden",
-                      "ring-1",
-                      tier.ring,
-                      tier.glow,
-                    ].join(" ")}
-                    onMouseEnter={() => setHovered(k)}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    {/* subtle glow */}
-                    <div className="pointer-events-none absolute -inset-6 opacity-40 blur-2xl">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-                    </div>
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+              <span className={`h-2 w-2 rounded-full ${confidenceDot(0.9)}`} />
+              High
+              <span className={`ml-3 h-2 w-2 rounded-full ${confidenceDot(0.6)}`} />
+              Medium
+              <span className={`ml-3 h-2 w-2 rounded-full ${confidenceDot(0.25)}`} />
+              Low
+            </div>
+          </div>
 
-                    <div className="relative">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm text-white/70">{humanLabel(k)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {fields.map(([k, v]) => {
+              const c = v.confidence || 0;
+              const pct = Math.round(c * 100);
+
+              return (
+                <div
+                  key={k}
+                  className={[
+                    "relative rounded-2xl border shadow-lg overflow-hidden",
+                    "transition-transform duration-200 hover:-translate-y-0.5",
+                    "bg-white/65 dark:bg-white/5 backdrop-blur",
+                    "border-white/30 dark:border-white/10",
+                  ].join(" ")}
+                  onMouseEnter={() => setHovered(k)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  {/* Subtle neon edge */}
+                  <div className="pointer-events-none absolute inset-0 opacity-60 bg-[radial-gradient(80%_60%_at_50%_0%,rgba(99,102,241,0.18),transparent_60%)]" />
+
+                  <div className="relative p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                          {niceLabel(k)}
+                        </p>
+                        <div className="mt-2">
                           <ConfidenceGate confidence={c}>
-                            <p className="mt-2 text-3xl font-extrabold tracking-tight text-white">
-                              {v?.value || "—"}
+                            <p className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                              {v.value || "—"}
                             </p>
                           </ConfidenceGate>
                         </div>
+                      </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/80">
-                            <span className="inline-block h-2 w-2 rounded-full bg-white/70" />
-                            {tier.label} • {pct}%
+                      <div
+                        className={[
+                          "shrink-0 rounded-xl border px-3 py-2 text-center min-w-[110px]",
+                          confidenceTone(c),
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${confidenceDot(c)}`} />
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">
+                            {pct}% conf
                           </span>
-
-                          {/* Keep your existing low-confidence UI */}
-                          <LowConfidenceFlag confidence={c} />
                         </div>
-                      </div>
-
-                      {/* “Why this confidence?” tooltip */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <p className="text-xs text-white/60">
-                          {v?.reason || "Confidence based on extraction quality."}
+                        <p className="mt-1 text-[11px] text-gray-700 dark:text-gray-200 opacity-80">
+                          {c >= 0.8 ? "Strong" : c >= 0.55 ? "Good" : c >= 0.35 ? "Weak" : "Very weak"}
                         </p>
-
-                        <div className="relative">
-                          {hovered === k && (
-                            <div className="absolute right-0 top-0 translate-y-6 z-50">
-                              <ConfidenceTooltip confidence={c} source={v?.source} />
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onMouseEnter={() => setHovered(k)}
-                            onMouseLeave={() => setHovered(null)}
-                            className="text-xs text-cyan-200/90 hover:text-cyan-200 underline underline-offset-4"
-                          >
-                            Why?
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Keep your existing AI field explanation + report + dispute tools */}
-                      <div className="mt-4 space-y-3">
-                        <FieldAIExplanation explanation={v?.aiExplanation} />
-                        <div className="flex flex-col gap-2">
-                          <ReportIncorrectAmount field={k} value={v?.value} />
-                          <DisputeLetterGenerator
-                            field={k}
-                            value={v?.value}
-                            confidence={c}
-                          />
-                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
 
-            {/* Heatmap */}
-            <div className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">Confidence Heatmap</p>
-                <p className="text-xs text-white/60">
-                  Quick view of extraction reliability
-                </p>
-              </div>
-              <div className="mt-3">
-                <ConfidenceHeatMap keyAmounts={keyAmounts} />
-              </div>
-            </div>
-
-            {/* Explanation */}
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl">
-              <button
-                onClick={() => setOpen(!open)}
-                className="w-full p-5 sm:p-6 flex items-center justify-between"
-              >
-                <div className="text-left">
-                  <p className="text-base sm:text-lg font-bold text-white">
-                    Explanation
-                  </p>
-                  <p className="text-xs text-white/60">
-                    Plain-language breakdown you can read in under a minute
-                  </p>
-                </div>
-
-                <span className="inline-flex items-center justify-center h-10 w-10 rounded-2xl border border-white/10 bg-black/30 text-white">
-                  {open ? "−" : "+"}
-                </span>
-              </button>
-
-              {open && (
-                <div className="px-5 pb-6 sm:px-6 sm:pb-7">
-                  {points?.length > 0 && (
-                    <div className="mb-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <p className="text-sm font-semibold text-white mb-2">
-                        Quick Summary
-                      </p>
-                      <div className="space-y-1 text-sm text-white/80">
-                        {points.map((p, i) => (
-                          <p key={i}>• {p}</p>
-                        ))}
-                      </div>
+                    <div className="mt-3">
+                      <LowConfidenceFlag confidence={c} />
                     </div>
-                  )}
 
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-sm font-semibold text-white mb-2">
-                      Detailed Explanation
-                    </p>
-                    <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">
-                      {explanation}
-                    </p>
+                    <div className="mt-3">
+                      <FieldAIExplanation explanation={v.aiExplanation} />
+                    </div>
 
-                    {nextSteps?.length > 0 && (
-                      <div className="mt-5">
-                        <p className="text-sm font-semibold text-white mb-2">
-                          Next Steps
-                        </p>
-                        <div className="space-y-1 text-sm text-white/80">
-                          {nextSteps.map((s, i) => (
-                            <p key={i}>• {s}</p>
-                          ))}
-                        </div>
+                    <div className="mt-4 flex flex-col gap-2">
+                      <ReportIncorrectAmount field={k} value={v.value} />
+                      <DisputeLetterGenerator field={k} value={v.value} confidence={c} />
+                    </div>
+
+                    {hovered === k && (
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30">
+                        <ConfidenceTooltip confidence={c} source={v.source} />
                       </div>
                     )}
                   </div>
-
-                  <p className="mt-4 text-[11px] text-white/50">
-                    Tip: If any amount is low-confidence, compare it against your original bill
-                    before paying. OCR + mixed formatting can cause misreads.
-                  </p>
                 </div>
-              )}
+              );
+            })}
+          </div>
+
+          <div className="mt-6">
+            <div className="rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur p-4 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  Confidence heat map
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  {sourceType}{usedOCR ? " • OCR used" : ""}
+                </p>
+              </div>
+              <ConfidenceHeatMap keyAmounts={keyAmounts} />
             </div>
           </div>
         </div>
 
-        {showLegend && <ConfidenceLegendModal onClose={() => setShowLegend(false)} />}
+        {/* Explanation accordion */}
+        <div className="px-6 sm:px-8 pb-8">
+          <button
+            onClick={() => setOpen(!open)}
+            className="w-full flex items-center justify-between rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur px-4 py-3 shadow-lg"
+          >
+            <span className="font-extrabold text-gray-900 dark:text-white">
+              Explanation
+            </span>
+            <span className="text-gray-700 dark:text-gray-200 text-xl">
+              {open ? "−" : "+"}
+            </span>
+          </button>
+
+          {open && (
+            <div className="mt-4 rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur p-5 shadow-lg space-y-3">
+              {points?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    Summary points
+                  </p>
+                  <div className="grid gap-2">
+                    {points.map((p, i) => (
+                      <div
+                        key={i}
+                        className="flex gap-3 rounded-xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/20 px-3 py-2"
+                      >
+                        <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/15 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold">
+                          {i + 1}
+                        </span>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                          {p}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  Detailed explanation
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                  {explanation}
+                </p>
+              </div>
+
+              {nextSteps?.length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    Next steps
+                  </p>
+                  <div className="grid gap-2">
+                    {nextSteps.map((s, i) => (
+                      <div
+                        key={i}
+                        className="flex gap-3 rounded-xl border border-white/20 dark:border-white/10 bg-white/50 dark:bg-black/20 px-3 py-2"
+                      >
+                        <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold">
+                          ✓
+                        </span>
+                        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                          {s}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 text-xs text-gray-600 dark:text-gray-300">
+                Tip: If a number is “Not detected” or low confidence, upload a PDF (not a photo of a screen),
+                or a clearer image with higher contrast.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {showLegend && (
+          <ConfidenceLegendModal onClose={() => setShowLegend(false)} />
+        )}
       </div>
     </div>
   );
