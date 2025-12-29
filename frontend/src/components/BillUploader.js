@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { explainBill } from "../api/explainApi"; // ✅ import new API helper
+import { uploadBill } from "../api/explainApi";
 
 export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
@@ -25,10 +25,7 @@ export default function BillUploader({ onResult, onLoading }) {
     setError("");
 
     try {
-      const data = await explainBill(file); // ✅ use API helper
-      if (!data || !data.pages) {
-        throw new Error("No valid data returned from server");
-      }
+      const data = await uploadBill(file);
       onResult(data);
     } catch (err) {
       console.error("Upload error:", err);
@@ -42,7 +39,6 @@ export default function BillUploader({ onResult, onLoading }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
       <h2 className="text-2xl font-bold text-center mb-4">Upload Your Bill</h2>
-
       <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
         Best: Clear photo of summary page or full PDF
       </p>
