@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -6,6 +6,7 @@ export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState("");
 
   const handleChange = (e) => {
     const f = e.target.files[0];
@@ -24,22 +25,46 @@ export default function BillUploader({ onResult, onLoading }) {
     setUploading(true);
     onLoading(true);
     setError("");
+    setProgress("");
 
     try {
       const form = new FormData();
       form.append("bill", file);
 
       const res = await fetch(WORKER_URL, { method: "POST", body: form });
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Server error");
-      }
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) throw new Error("Server error");
 
-      onResult(data);
+      // Streaming SSE events
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let resultData = { pages: [], isPaid: false };
+      let partial = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        partial += decoder.decode(value, { stream: true });
+
+        // SSE parsing
+        const events = partial.split("\n\n");
+        partial = events.pop(); // keep incomplete chunk
+
+        for (let ev of events) {
+          if (!ev.startsWith("data:")) continue;
+          const jsonStr = ev.replace(/^data: /, "").trim();
+          if (!jsonStr) continue;
+
+          let chunk;
+          try { chunk = JSON.parse(jsonStr); } catch { continue; }
+
+          if (chunk.status === "progress") setProgress(JSON.stringify(chunk.chunk, null, 2));
+          if (chunk.status === "info") setProgress(chunk.message);
+          if (chunk.status === "error") setProgress(chunk.message);
+          if (chunk.status === "done" && chunk.finalResult) resultData = { ...chunk.finalResult };
+        }
+      }
+
+      onResult(resultData);
     } catch (err) {
       setError(err.message || "Upload failed");
     } finally {
@@ -72,6 +97,7 @@ export default function BillUploader({ onResult, onLoading }) {
         </div>
 
         {error && <p className="text-red-600 text-center font-medium">{error}</p>}
+        {progress && <pre className="text-xs text-gray-700 dark:text-gray-300 p-2 bg-gray-100 dark:bg-gray-700 rounded">{progress}</pre>}
 
         <button
           type="submit"
