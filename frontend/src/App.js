@@ -8,9 +8,14 @@ import FAQ from "./components/FAQ";
 import UpgradeModal from "./components/UpgradeModal";
 import Loader from "./components/Loader";
 
-import { uploadBill, createCheckoutSession, isDevMode } from "./api/explainApi";
-
+// Load Stripe
 const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
+const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
+
+// 🔧 DEV MODE FLAG
+const DEV_MODE =
+  window.location.hostname === "localhost" ||
+  window.location.hostname.includes("127.0.0.1");
 
 function App() {
   const [result, setResult] = useState(null);
@@ -28,20 +33,33 @@ function App() {
     setLoading(true);
     abortRef.current = new AbortController();
 
+    const form = new FormData();
+    form.append("bill", file);
+
     try {
-      const data = await uploadBill(file);
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        body: form,
+        signal: abortRef.current.signal,
+        headers: DEV_MODE ? { "X-Dev-Bypass": "true" } : {},
+      });
 
-      // FORCE unlock in dev
-      if (isDevMode()) data.isPaid = true;
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
 
+      const data = await res.json();
+
+      // DEV OVERRIDE
+      if (DEV_MODE) data.isPaid = true;
+
+      console.log("ExplainMyBill response:", data);
       setResult(data);
 
-      if (!isDevMode() && !data?.isPaid) {
+      if (!DEV_MODE && !data?.isPaid) {
         setShowUpgrade(true);
       }
-    } catch (err) {
-      console.error("Bill processing failed:", err);
-      alert(err.message || "Something went wrong.");
+    } catch (e) {
+      console.error("Bill processing failed:", e);
+      alert("Something went wrong. Check console.");
     } finally {
       setLoading(false);
     }
@@ -51,9 +69,7 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 dark:from-gray-900 dark:to-indigo-950">
       <header className="bg-gradient-to-r from-indigo-600 to-purple-700 py-6 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            ExplainMyBill
-          </h1>
+          <h1 className="text-4xl font-bold text-white mb-2">ExplainMyBill</h1>
           <p className="text-lg text-white/90">
             Instant medical bill explanations — private & free to try
           </p>
@@ -68,10 +84,7 @@ function App() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {!result ? (
-          <BillUploader
-            onResult={processBill}
-            onLoading={setLoading}
-          />
+          <BillUploader onResult={processBill} onLoading={setLoading} />
         ) : (
           <>
             <div className="text-center mb-6">
@@ -88,12 +101,9 @@ function App() {
               onUpgrade={() => setShowUpgrade(true)}
             />
 
-            {result?.isPaid &&
-              result.pages?.[0]?.structured && (
-                <PaidFeatures
-                  features={result.pages[0].structured}
-                />
-              )}
+            {result?.isPaid && result.pages?.[0]?.structured && (
+              <PaidFeatures features={result.pages[0].structured} />
+            )}
           </>
         )}
       </main>
@@ -130,11 +140,9 @@ function App() {
 
       {loading && <Loader />}
 
-      {showUpgrade && !isDevMode() && (
-        <UpgradeModal
-          onClose={() => setShowUpgrade(false)}
-          stripePromise={stripePromise}
-        />
+      {/* Upgrade modal only in PROD */}
+      {showUpgrade && !DEV_MODE && (
+        <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />
       )}
     </div>
   );
