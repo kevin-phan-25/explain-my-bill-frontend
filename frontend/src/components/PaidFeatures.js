@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-export default function PaidFeatures({ features }) {
+export default function PaidFeatures({ features, streamingProgress }) {
   if (!features) return null;
 
   const cardVariants = {
@@ -70,6 +70,19 @@ export default function PaidFeatures({ features }) {
               </li>
             ))}
           </ul>
+        </motion.div>
+      )}
+
+      {/* Optional: Show live streaming progress */}
+      {streamingProgress && (
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="bg-gray-50 dark:bg-gray-900/30 border-l-8 border-gray-500 rounded-2xl p-8 shadow-inner text-sm font-mono overflow-x-auto"
+        >
+          <h4 className="text-xl font-bold mb-4">Streaming AI Output</h4>
+          <pre className="text-gray-700 dark:text-gray-300">{streamingProgress}</pre>
         </motion.div>
       )}
     </div>
