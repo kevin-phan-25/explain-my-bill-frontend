@@ -8,23 +8,14 @@ export default function BillUploader({ onResult, onLoading }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
-    if (!validTypes.includes(selected.type)) {
-      setError("Please upload JPG, PNG, or PDF");
-      return;
-    }
-
-    if (selected.size > 20 * 1024 * 1024) {
+  const handleChange = (e) => {
+    const f = e.target.files[0];
+    if (f && f.size < 20 * 1024 * 1024) {
+      setFile(f);
+      setError("");
+    } else if (f) {
       setError("File too large (max 20MB)");
-      return;
     }
-
-    setFile(selected);
-    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -36,35 +27,24 @@ export default function BillUploader({ onResult, onLoading }) {
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("bill", file);
+      const form = new FormData();
+      form.append("bill", file);
 
-      const res = await fetch(WORKER_URL, {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch(WORKER_URL, { method: "POST", body: form });
       const text = await res.text();
 
       let data;
       try {
         data = JSON.parse(text);
-      } catch (parseErr) {
-        console.error("Failed to parse Worker response:", text);
-        setError("Server response error – try a clearer photo");
-        return;
+      } catch {
+        throw new Error("Invalid response from server");
       }
 
-      if (!res.ok) {
-        setError(data.error || "Upload failed");
-        return;
-      }
+      if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      // SUCCESS — pass result to parent
-      onResult(data);
+      onResult(data); // THIS LINE IS CRITICAL
     } catch (err) {
-      console.error("Upload error:", err);
-      setError(err.message || "Network error – please try again");
+      setError(err.message);
     } finally {
       setUploading(false);
       onLoading(false);
@@ -72,81 +52,32 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-white rounded-3xl shadow-2xl p-10">
-        <h2 className="text-4xl font-black text-center text-blue-900 mb-10">
-          Upload Your Medical Bill
-        </h2>
+    <div className="bg-white rounded-3xl shadow-2xl p-10">
+      <h2 className="text-3xl font-bold text-center text-blue-900 mb-8">Upload Your Bill</h2>
 
-        {/* Pro Tip – This is the key to success */}
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl p-8 mb-10">
-          <h3 className="text-2xl font-bold text-emerald-900 text-center mb-6">
-            For the Best Results:
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8 text-emerald-800">
-            <div className="text-center">
-              <div className="text-6xl mb-4">📸</div>
-              <p className="font-bold">Take a clear photo</p>
-              <p className="text-sm mt-2">of the summary page</p>
-            </div>
-            <div className="text-center">
-              <div className="text-6xl mb-4">☀️</div>
-              <p className="font-bold">Good lighting</p>
-              <p className="text-sm mt-2">no shadows or glare</p>
-            </div>
-            <div className="text-center">
-              <div className="text-6xl mb-4">🖼️</div>
-              <p className="font-bold">JPG or PNG</p>
-              <p className="text-sm mt-2">works best</p>
-            </div>
-          </div>
+      <div className="bg-green-50 border-2 border-green-300 rounded-2xl p-6 mb-8 text-center">
+        <p className="font-bold text-green-900 mb-2">Best results: Clear photo of summary page (JPG/PNG)</p>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="border-4 border-dashed border-blue-400 rounded-2xl p-12 text-center">
+          <input type="file" accept="image/*,application/pdf" onChange={handleChange} className="hidden" id="upload" />
+          <label htmlFor="upload" className="cursor-pointer">
+            {file ? <p className="text-2xl font-bold text-blue-900">{file.name}</p> : <p className="text-2xl font-bold text-blue-900">Click to upload</p>}
+            <p className="text-blue-600 mt-2">JPG, PNG, PDF • Max 20MB</p>
+          </label>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="border-4 border-dashed border-blue-400 rounded-3xl p-16 text-center hover:border-blue-600 transition-all duration-300">
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={handleFileChange}
-              className="hidden"
-              id="upload-input"
-              disabled={uploading}
-            />
-            <label htmlFor="upload-input" className="cursor-pointer block">
-              {file ? (
-                <div className="space-y-4">
-                  <p className="text-3xl font-bold text-blue-900">{file.name}</p>
-                  <p className="text-xl text-blue-600">Click to change</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="text-9xl">📄</div>
-                  <p className="text-3xl font-bold text-blue-900">
-                    Click to upload your bill
-                  </p>
-                  <p className="text-xl text-blue-700">
-                    JPG, PNG, or PDF • Max 20MB
-                  </p>
-                </div>
-              )}
-            </label>
-          </div>
+        {error && <p className="text-red-600 text-center mt-4 font-bold">{error}</p>}
 
-          {error && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-6 text-red-800 text-center text-lg font-semibold">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={!file || uploading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-black text-3xl py-8 rounded-3xl shadow-2xl hover:shadow-indigo-500/50 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
-          >
-            {uploading ? "Analyzing Your Bill..." : "Explain My Bill"}
-          </button>
-        </form>
-      </div>
+        <button
+          type="submit"
+          disabled={!file || uploading}
+          className="w-full mt-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold text-2xl py-6 rounded-2xl disabled:opacity-50"
+        >
+          {uploading ? "Analyzing..." : "Explain My Bill"}
+        </button>
+      </form>
     </div>
   );
 }
