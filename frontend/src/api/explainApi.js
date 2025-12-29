@@ -1,47 +1,84 @@
+// explainApi.js — Frontend API wrapper for ExplainMyBill Worker
+
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
-// 🔧 DEV MODE FLAG
+// 🔧 DEV mode auto-detect
 const DEV_MODE =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" ||
-    window.location.hostname.includes("127.0.0.1"));
+  window.location.hostname === "localhost" ||
+  window.location.hostname.includes("127.0.0.1");
 
 /**
- * Uploads a bill file to ExplainMyBill backend and returns the result.
- *
- * @param {File} file - The bill file (PDF, JPG, PNG, XLSX)
- * @param {AbortSignal} [signal] - Optional signal to cancel the request
- * @returns {Promise<Object>} - Returns server JSON response
+ * Upload a bill file and get analysis
+ * @param {File} file - The uploaded bill
+ * @param {string} [sessionId] - Optional Stripe session ID for paid checks
+ * @returns {Promise<Object>} - Parsed JSON response from Worker
  */
-export async function explainBill(file, signal) {
+export async function uploadBill(file, sessionId = null) {
   if (!file) throw new Error("No file provided");
 
   const form = new FormData();
   form.append("bill", file);
+  if (sessionId) form.append("sessionId", sessionId);
 
   try {
     const res = await fetch(WORKER_URL, {
       method: "POST",
       body: form,
-      signal,
-      headers: DEV_MODE ? { "X-Dev-Bypass": "true" } : {},
+      headers: DEV_MODE
+        ? { "X-Dev-Bypass": "true" } // DEV unlock
+        : {},
     });
+
+    const data = await res.json();
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => res.statusText);
-      throw new Error(`Upload failed: ${res.status} ${errText}`);
+      throw new Error(
+        data?.error || `Upload failed with status ${res.status}`
+      );
     }
-
-    const data = await res.json().catch(() => {
-      throw new Error("Invalid JSON returned from server");
-    });
-
-    // 🔓 DEV_MODE unlock
-    if (DEV_MODE) data.isPaid = true;
 
     return data;
   } catch (err) {
-    console.error("explainBill API error:", err);
+    console.error("UploadBill error:", err);
     throw err;
   }
+}
+
+/**
+ * Create a Stripe Checkout session
+ * @param {"monthly"|"one-time"|"lifetime"} plan - Plan type
+ * @returns {Promise<string>} - Stripe session ID
+ */
+export async function createCheckoutSession(plan) {
+  if (!["monthly", "one-time", "lifetime"].includes(plan)) {
+    throw new Error("Invalid plan type");
+  }
+
+  try {
+    const res = await fetch(`${WORKER_URL}/create-checkout-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.id) {
+      throw new Error(
+        data?.error || `Stripe session creation failed with status ${res.status}`
+      );
+    }
+
+    return data.id;
+  } catch (err) {
+    console.error("createCheckoutSession error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Helper to detect DEV mode (frontend)
+ */
+export function isDevMode() {
+  return DEV_MODE;
 }
