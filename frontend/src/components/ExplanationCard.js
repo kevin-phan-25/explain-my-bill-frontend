@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
-const Chevron = ({ isOpen }) => (
-  <svg className={`w-5 h-5 text-white transition ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-  </svg>
-);
-
 export default function ExplanationCard({ result, onUpgrade }) {
   const [open, setOpen] = useState(["main"]);
 
@@ -26,117 +20,97 @@ export default function ExplanationCard({ result, onUpgrade }) {
 
   const keyAmounts = structured?.keyAmounts || {};
   const points = structured?.summaryPoints || [];
-  const services = structured?.services || [];
   const redFlags = structured?.redFlags || [];
-  const potentialSavings = structured?.potentialSavings;
-
-  const hasText = explanation.length > 20 || rawText.length > 50;
 
   const toggle = (sec) => setOpen(prev => prev.includes(sec) ? prev.filter(s => s !== sec) : [...prev, sec]);
 
   const downloadPDF = () => {
     const doc = new jsPDF();
     let y = 20;
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.text("Bill Review", 20, y);
     y += 20;
 
-    if (structured) {
-      ["Total Billed", "Insurance Paid", "You Owe", "Potential Savings"].forEach((label, i) => {
-        const value = i === 0 ? keyAmounts.totalCharges :
-                      i === 1 ? keyAmounts.insurancePaid :
-                      i === 2 ? keyAmounts.patientResponsibility :
-                      potentialSavings || (isPaid ? "Calculated" : "Upgrade");
-        doc.text(`${label}: ${value || "—"}`, 30, y);
-        y += 12;
-      });
-      y += 20;
-    }
+    ["Total Billed", "Insurance Paid", "You Owe"].forEach((label, i) => {
+      const value = i === 0 ? keyAmounts.totalCharges :
+                    i === 1 ? keyAmounts.insurancePaid :
+                    keyAmounts.patientResponsibility || "—";
+      doc.text(`${label}: ${value || "—"}`, 30, y);
+      y += 12;
+    });
 
-    doc.setFontSize(16);
+    y += 20;
+    doc.setFontSize(14);
     doc.text("Explanation", 20, y);
     y += 12;
-    doc.setFontSize(11);
-    (explanation || rawText || "Analysis complete.").split("\n").forEach(line => {
+    doc.setFontSize(10);
+    (explanation || "Analysis complete.").split("\n").forEach(line => {
       if (y > 280) { doc.addPage(); y = 20; }
       doc.text(line, 20, y);
       y += 8;
     });
 
-    doc.save("ExplainMyBill.pdf");
+    doc.save("bill.pdf");
   };
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-bold text-center text-blue-900">Your Bill Review</h1>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-center">Your Review</h1>
 
       {/* Key Amounts */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {[
-          { label: "Total Billed", value: keyAmounts.totalCharges || "—" },
-          { label: "Insurance Paid", value: keyAmounts.insurancePaid || "—" },
-          { label: "You Owe", value: keyAmounts.patientResponsibility || "—" },
-          { label: "Savings", value: potentialSavings || (isPaid ? "Calculated" : "Upgrade") },
-        ].map((item, i) => (
-          <div key={i} className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 text-center shadow">
-            <p className="text-sm font-medium text-blue-700">{item.label}</p>
-            <p className="text-3xl font-black text-blue-900 mt-2">{item.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Total Billed</p>
+          <p className="text-2xl font-bold">{keyAmounts.totalCharges || "—"}</p>
+        </div>
+        <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Insurance Paid</p>
+          <p className="text-2xl font-bold">{keyAmounts.insurancePaid || "—"}</p>
+        </div>
+        <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">You Owe</p>
+          <p className="text-2xl font-bold">{keyAmounts.patientResponsibility || "—"}</p>
+        </div>
+        <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-4 text-center">
+          <p className="text-sm font-medium">Savings</p>
+          <p className="text-2xl font-bold">{structured?.potentialSavings || (isPaid ? "Calc'd" : "Upgrade")}</p>
+        </div>
       </div>
 
       {/* Explanation */}
-      <div className="bg-white rounded-2xl shadow-xl p-8">
-        <button onClick={() => toggle("main")} className="w-full flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Explanation</h2>
-          <Chevron isOpen={open.includes("main")} />
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow">
+        <button onClick={() => toggle("main")} className="w-full flex justify-between items-center">
+          <h2 className="text-xl font-bold">Explanation</h2>
+          <span className="text-lg">{open.includes("main") ? "−" : "+"}</span>
         </button>
         {open.includes("main") && (
-          <div className="space-y-4 text-lg">
-            {points.length > 0 && (
-              <ul className="space-y-3">
-                {points.map((p, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="text-blue-600">•</span>
-                    <span>{p}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="prose max-w-none">
+          <div className="mt-4 space-y-3 text-base">
+            {points.length > 0 && points.map((p, i) => <p key={i} className="flex gap-2"><span>•</span> {p}</p>)}
+            <div className="prose prose-sm dark:prose-invert max-w-none">
               {(explanation || rawText || "Analysis complete.").split("\n\n").map((p, i) => p.trim() && <p key={i}>{p.trim()}</p>)}
             </div>
           </div>
         )}
       </div>
 
-      {/* Services & Red Flags (compact) */}
-      {services.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow">
-          <h3 className="font-bold text-xl mb-3">Services</h3>
-          <ul className="space-y-2">
-            {services.map((s, i) => <li key={i} className="text-gray-700">• {s}</li>)}
-          </ul>
-        </div>
-      )}
-
+      {/* Red Flags */}
       {redFlags.length > 0 && (
-        <div className="bg-red-50 border border-red-300 rounded-xl p-6">
-          <h3 className="font-bold text-xl text-red-800 mb-3">Alerts</h3>
+        <div className="bg-red-100 dark:bg-red-900/30 rounded-xl p-5">
+          <h3 className="font-bold text-lg text-red-800 dark:text-red-300 mb-3">Alerts</h3>
           <ul className="space-y-2">
-            {redFlags.map((f, i) => <li key={i} className="text-red-700">• {f}</li>)}
+            {redFlags.map((f, i) => <li key={i} className="text-red-700 dark:text-red-200">• {f}</li>)}
           </ul>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <button onClick={downloadPDF} className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition">
-          Download Report
+      <div className="flex gap-4">
+        <button onClick={downloadPDF} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+          Download PDF
         </button>
         {!isPaid && (
-          <button onClick={onUpgrade} className="flex-1 bg-purple-600 text-white font-bold py-4 rounded-xl hover:bg-purple-700 transition">
-            Unlock Full Review
+          <button onClick={onUpgrade} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition">
+            Unlock Full
           </button>
         )}
       </div>
