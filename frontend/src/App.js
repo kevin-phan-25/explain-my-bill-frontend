@@ -29,6 +29,8 @@ function App() {
   };
 
   const processBill = async (file) => {
+    if (!file) return;
+
     setLoading(true);
     abortRef.current = new AbortController();
 
@@ -40,34 +42,32 @@ function App() {
         method: "POST",
         body: form,
         signal: abortRef.current.signal,
-        headers: DEV_MODE
-          ? { "X-Dev-Bypass": "true" } // 🔥 DEV UNLOCK
-          : {},
+        headers: DEV_MODE ? { "X-Dev-Bypass": "true" } : {},
       });
 
       if (!res.ok) {
-        throw new Error(`Upload failed: ${res.status}`);
+        // Read error text if available
+        const errText = await res.text().catch(() => res.statusText);
+        throw new Error(`Upload failed: ${res.status} ${errText}`);
       }
 
-      // ✅ ALWAYS parse JSON safely
-      const data = await res.json();
+      const data = await res.json().catch(() => {
+        throw new Error("Invalid JSON returned from server");
+      });
 
-      // 🔓 FORCE UNLOCK IN DEV (frontend safety)
-      if (DEV_MODE) {
-        data.isPaid = true;
-      }
+      // 🔓 DEV MODE unlock
+      if (DEV_MODE) data.isPaid = true;
 
       console.log("ExplainMyBill response:", data);
-
       setResult(data);
 
-      // ⚠️ IMPORTANT: upgrade modal only in PROD
+      // Show upgrade modal only in PROD when unpaid
       if (!DEV_MODE && !data?.isPaid) {
         setShowUpgrade(true);
       }
     } catch (e) {
       console.error("Bill processing failed:", e);
-      alert("Something went wrong. Check console.");
+      alert(`Something went wrong. ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -94,10 +94,7 @@ function App() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {!result ? (
-          <BillUploader
-            onResult={processBill}
-            onLoading={setLoading}
-          />
+          <BillUploader onResult={processBill} onLoading={setLoading} />
         ) : (
           <>
             <div className="text-center mb-6">
@@ -114,13 +111,9 @@ function App() {
               onUpgrade={() => setShowUpgrade(true)}
             />
 
-            {/* ✅ Paid features render safely */}
-            {result?.isPaid &&
-              result.pages?.[0]?.structured && (
-                <PaidFeatures
-                  features={result.pages[0].structured}
-                />
-              )}
+            {result?.isPaid && result.pages?.[0]?.structured && (
+              <PaidFeatures features={result.pages[0].structured} />
+            )}
           </>
         )}
       </main>
@@ -135,33 +128,17 @@ function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            {
-              icon: "🔒",
-              title: "No Storage",
-              desc: "Deleted instantly",
-            },
-            {
-              icon: "🛡️",
-              title: "No Account",
-              desc: "No sign-up needed",
-            },
-            {
-              icon: "⚡",
-              title: "Secure",
-              desc: "Private processing",
-            },
+            { icon: "🔒", title: "No Storage", desc: "Deleted instantly" },
+            { icon: "🛡️", title: "No Account", desc: "No sign-up needed" },
+            { icon: "⚡", title: "Secure", desc: "Private processing" },
           ].map((i, k) => (
             <div
               key={k}
               className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-2xl p-6 text-center border border-white/20"
             >
               <div className="text-5xl mb-3">{i.icon}</div>
-              <h3 className="text-xl font-bold mb-2">
-                {i.title}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {i.desc}
-              </p>
+              <h3 className="text-xl font-bold mb-2">{i.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{i.desc}</p>
             </div>
           ))}
         </div>
@@ -173,7 +150,6 @@ function App() {
 
       {loading && <Loader />}
 
-      {/* 🚫 Upgrade modal NEVER blocks dev testing */}
       {showUpgrade && !DEV_MODE && (
         <UpgradeModal
           onClose={() => setShowUpgrade(false)}
