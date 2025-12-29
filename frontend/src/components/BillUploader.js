@@ -1,79 +1,45 @@
-import React, { useState } from "react";
-import { uploadBill } from "../api/explainApi";
+import React, { useRef, useState } from "react";
 
 export default function BillUploader({ onResult, onLoading }) {
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
+  const inputRef = useRef();
+  const [error, setError] = useState(null);
 
-  const handleChange = (e) => {
-    const f = e.target.files[0];
-    if (f && f.size <= 20 * 1024 * 1024) {
-      setFile(f);
-      setError("");
-    } else if (f) {
-      setError("Max 20MB per file");
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowed = [".pdf", ".png", ".jpg", ".jpeg", ".xls", ".xlsx"];
+    if (!allowed.some((ext) => file.name.toLowerCase().endsWith(ext))) {
+      setError("Unsupported file type.");
+      return;
     }
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!file || uploading) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setError("File exceeds 20MB.");
+      return;
+    }
 
-    setUploading(true);
+    setError(null);
     onLoading(true);
-    setError("");
-
-    try {
-      const data = await uploadBill(file);
-      onResult(data);
-    } catch (err) {
-      console.error("Upload error:", err);
-      setError(err.message || "Upload failed");
-    } finally {
-      setUploading(false);
-      onLoading(false);
-    }
+    await onResult(file);
+    onLoading(false);
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-      <h2 className="text-2xl font-bold text-center mb-4">Upload Your Bill</h2>
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Best: Clear photo of summary page or full PDF
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-10 text-center">
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={handleChange}
-            className="hidden"
-            id="file"
-          />
-          <label htmlFor="file" className="cursor-pointer">
-            {file ? (
-              <p className="font-semibold text-lg">{file.name}</p>
-            ) : (
-              <div>
-                <p className="font-semibold text-lg">Tap to upload</p>
-                <p className="text-sm text-gray-500 mt-2">JPG • PNG • PDF</p>
-              </div>
-            )}
-          </label>
-        </div>
-
-        {error && <p className="text-red-600 text-center font-medium">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={!file || uploading}
-          className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 transition"
-        >
-          {uploading ? "Analyzing..." : "Explain My Bill"}
-        </button>
-      </form>
+    <div className="text-center py-12">
+      <input
+        type="file"
+        ref={inputRef}
+        className="hidden"
+        onChange={handleFile}
+      />
+      <button
+        onClick={() => inputRef.current.click()}
+        className="bg-indigo-600 text-white py-3 px-6 rounded-xl hover:bg-indigo-700"
+      >
+        Upload Your Bill
+      </button>
+      {error && <p className="text-red-600 mt-3">{error}</p>}
     </div>
   );
 }
