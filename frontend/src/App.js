@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import BillUploader from './components/BillUploader';
 import ExplanationCard from './components/ExplanationCard';
 import UpgradeModal from './components/UpgradeModal';
 import Loader from './components/Loader';
-import Testimonials from './components/Testimonials';
 
 const stripePromise = loadStripe('pk_test_51YourTestKeyHere');
 
@@ -12,17 +11,8 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
   const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('onrender.com');
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
 
   const handleResult = (data) => {
     if (isDev || data?.isPaid) {
@@ -39,51 +29,50 @@ function App() {
     setShowUpgrade(false);
   };
 
-  const samples = [
-    {
-      name: 'Check-Up',
-      image: 'https://miro.medium.com/v2/resize:fit:1200/1*MpSlUJoxPjb9jk6PG525vA.jpeg',
-      data: { isPaid: true, pages: [{ structured: { summary: 'Routine visit.', keyAmounts: { totalCharges: '$195', insurancePaid: '$117', patientResponsibility: '$39' }, explanation: 'Normal copay.' } }] },
-    },
-    {
-      name: 'ER Visit',
-      image: 'https://media-cldnry.s-nbcnews.com/image/upload/t_fit-760w,f_auto,q_auto:best/rockcms/2025-07/250722-hospital-bills-mb-1407-69aafe.jpg',
-      data: { isPaid: true, pages: [{ structured: { summary: 'High-cost ER.', keyAmounts: { totalCharges: '$4,200', insurancePaid: '$1,800', patientResponsibility: '$600' }, redFlags: ['High fees'], explanation: 'Often negotiable.' } }] },
-    },
-  ];
-
-  const loadSample = (data) => {
-    setLoading(true);
-    setTimeout(() => {
-      handleResult(data);
-      setLoading(false);
-    }, 500);
-  };
-
   return (
-    <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Header with Dark Mode Toggle */}
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 py-4 shadow-lg">
-        <div className="max-w-5xl mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-bold">ExplainMyBill</h1>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition"
-            aria-label="Toggle dark mode"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 py-16 shadow-2xl">
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative max-w-5xl mx-auto px-6 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl md:text-7xl font-black text-white mb-6"
           >
-            {darkMode ? '☀️' : '🌙'}
-          </button>
+            ExplainMyBill
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-2xl md:text-3xl text-white/90 font-light mb-8"
+          >
+            Understand your medical bills in plain English — instantly.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6 }}
+            className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-md px-6 py-3 rounded-full border border-white/30"
+          >
+            <span className="text-2xl">🔒</span>
+            <span className="text-white font-medium">Your bill is deleted immediately after analysis — never stored</span>
+          </motion.div>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      {/* Main Content */}
+      <main className="max-w-5xl mx-auto px-6 py-16">
         {!result ? (
           <BillUploader onResult={handleResult} onLoading={setLoading} />
         ) : (
           <>
-            <div className="text-center mb-6">
-              <button onClick={reset} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+            <div className="text-center mb-10">
+              <button
+                onClick={reset}
+                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              >
                 ← Analyze Another Bill
               </button>
             </div>
@@ -92,38 +81,61 @@ function App() {
         )}
       </main>
 
-      {/* Sample Bills */}
-      {!result && (
-        <section className="max-w-5xl mx-auto px-4 pb-12">
-          <h2 className="text-xl font-bold text-center mb-6">Try a Sample</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {samples.map((bill, i) => (
-              <button
-                key={i}
-                onClick={() => loadSample(bill.data)}
-                className="group rounded-xl overflow-hidden shadow-md hover:shadow-lg transition"
-              >
-                <img src={bill.image} alt={bill.name} className="w-full h-40 object-cover group-hover:scale-105 transition" />
-                <div className="bg-white dark:bg-gray-800 p-4 text-center">
-                  <p className="font-semibold">{bill.name}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Privacy & Trust Section */}
+      <section className="max-w-5xl mx-auto px-6 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Your Privacy Is Our Priority
+          </h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            We process your bill instantly in memory and delete it immediately. No storage. No sharing. No logs.
+          </p>
+        </motion.div>
 
-      <Testimonials />
+        <div className="grid md:grid-cols-3 gap-10">
+          {[
+            {
+              icon: "🔒",
+              title: "Zero Data Retention",
+              desc: "Your bill is processed in memory and permanently deleted right after analysis.",
+            },
+            {
+              icon: "🛡️",
+              title: "No Accounts Needed",
+              desc: "No sign-up, no email, no personal info required. Completely anonymous.",
+            },
+            {
+              icon: "⚡",
+              title: "Instant & Secure",
+              desc: "All processing happens in a secure, isolated environment. Nothing is saved.",
+            },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.2 }}
+              className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-10 border border-white/50 shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500"
+            >
+              <div className="text-6xl mb-6">{item.icon}</div>
+              <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 dark:bg-black text-white/70 py-8 mt-12">
-        <div className="max-w-5xl mx-auto px-4 text-center text-sm space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><strong>🔒 No Data Stored</strong><p>Deleted after analysis</p></div>
-            <div><strong>📘 Educational Only</strong><p>Not medical advice</p></div>
-            <div><strong>🛡️ Privacy First</strong><p>No HIPAA required</p></div>
-          </div>
-          <p>© 2025 ExplainMyBill</p>
+      <footer className="bg-gradient-to-t from-black/50 to-transparent py-12 mt-20">
+        <div className="max-w-5xl mx-auto px-6 text-center text-white/70">
+          <p className="text-lg">© 2025 ExplainMyBill • An educational tool made with care for patients</p>
+          <p className="text-sm mt-4">Not medical or legal advice • Not HIPAA-certified • Privacy-first design</p>
         </div>
       </footer>
 
