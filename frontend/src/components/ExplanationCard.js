@@ -22,6 +22,7 @@ export default function ExplanationCard({ result }) {
   const downloadPDF = () => {
     const doc = new jsPDF();
     let y = 20;
+    const pageHeight = doc.internal.pageSize.height;
 
     doc.setFontSize(18);
     doc.text("Bill Explanation", 20, y);
@@ -30,16 +31,23 @@ export default function ExplanationCard({ result }) {
     Object.entries(keyAmounts).forEach(([k, v]) => {
       doc.text(`${k}: ${v || "—"}`, 20, y);
       y += 10;
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        y = 20;
+      }
     });
 
     y += 10;
     explanation.split("\n").forEach((line) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, 20, y);
-      y += 8;
+      const lines = doc.splitTextToSize(line, 170);
+      lines.forEach((subLine) => {
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(subLine, 20, y);
+        y += 8;
+      });
     });
 
     doc.save("bill.pdf");
@@ -67,9 +75,7 @@ export default function ExplanationCard({ result }) {
 
       {open && (
         <div className="space-y-2">
-          {points.map((p, i) => (
-            <p key={i}>• {p}</p>
-          ))}
+          {points.length > 0 && points.map((p, i) => <p key={i}>• {p}</p>)}
           <p className="whitespace-pre-wrap">{explanation}</p>
         </div>
       )}
