@@ -1,16 +1,15 @@
 {
   "name": "explain-my-bill-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
     "@stripe/stripe-js": "^2.4.0",
+    "framer-motion": "^11.5.4",
     "jspdf": "^2.5.1",
-    "file-saver": "^2.0.5",
-    "pdf-lib": "^1.17.1",
+    "jspdf-autotable": "^3.8.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-scripts": "^5.0.1",
-    "framer-motion": "^10.12.16"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -24,12 +23,21 @@
       "react-app/jest"
     ]
   },
-  "browserslist": [
-    "defaults"
-  ],
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.24",
-    "autoprefixer": "^10.4.14"
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13"
   }
 }
