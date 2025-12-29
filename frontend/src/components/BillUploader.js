@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
@@ -6,6 +6,8 @@ export default function BillUploader({ onResult, onLoading }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [streamText, setStreamText] = useState("");
+  const abortControllerRef = useRef(null);
 
   const handleChange = (e) => {
     const f = e.target.files[0];
@@ -22,39 +24,67 @@ export default function BillUploader({ onResult, onLoading }) {
     if (!file || uploading) return;
 
     setUploading(true);
+    setStreamText("");
     onLoading(true);
     setError("");
+
+    abortControllerRef.current = new AbortController();
 
     try {
       const form = new FormData();
       form.append("bill", file);
 
-      const res = await fetch(WORKER_URL, { method: "POST", body: form });
+      // Upload file
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        body: form,
+        signal: abortControllerRef.current.signal,
+      });
 
-      if (!res.ok) {
-        throw new Error(`Upload failed: ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error("Upload failed");
 
-      // Attempt streaming / fallback
-      let data;
-      try {
-        // Try JSON first
+      // Streaming response
+      if (res.body && res.body.getReader) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let text = "";
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            text += chunk;
+            setStreamText(text); // live progressive feedback
+          }
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Failed to parse AI response");
+        }
+
+        // Fallback AI
+        if (!data.pages) {
+          const fallbackRes = await fetch(WORKER_URL + "/fallback", {
+            method: "POST",
+            body: form,
+          });
+          data = await fallbackRes.json();
+        }
+
+        onResult(data);
+      } else {
         const text = await res.text();
-        data = JSON.parse(text);
-      } catch {
-        // If JSON parsing fails, fallback to simple text
-        const fallbackText = await res.text();
-        data = { pages: [{ explanation: fallbackText }], isPaid: false };
+        onResult(JSON.parse(text));
       }
-
-      if (!data || !data.pages) {
-        throw new Error("No valid data returned from server");
-      }
-
-      onResult(data);
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error("Bill upload error:", err);
       setError(err.message || "Upload failed");
+      setStreamText("AI failed, please try again.");
     } finally {
       setUploading(false);
       onLoading(false);
@@ -64,9 +94,8 @@ export default function BillUploader({ onResult, onLoading }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
       <h2 className="text-2xl font-bold text-center mb-4">Upload Your Bill</h2>
-
       <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Best: Clear photo of summary page or full PDF
+        Best: Clear photo of summary page or PDF
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -90,7 +119,17 @@ export default function BillUploader({ onResult, onLoading }) {
           </label>
         </div>
 
-        {error && <p className="text-red-600 text-center font-medium">{error}</p>}
+        {error && (
+          <p className="text-red-600 text-center font-medium">{error}</p>
+        )}
+
+        {streamText && (
+          <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl prose dark:prose-invert max-w-none">
+            {streamText.split("\n\n").map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+        )}
 
         <button
           type="submit"
