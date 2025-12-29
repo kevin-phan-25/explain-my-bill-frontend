@@ -12,12 +12,12 @@ import Loader from "./components/Loader";
 const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
-// 🔧 DEV MODE FLAG
+// DEV MODE FLAG
 const DEV_MODE =
   window.location.hostname === "localhost" ||
   window.location.hostname.includes("127.0.0.1");
 
-function App() {
+export default function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -140,12 +140,12 @@ function App() {
 
       {loading && <Loader />}
 
-      {/* Upgrade modal only in PROD */}
       {showUpgrade && !DEV_MODE && (
-        <UpgradeModal onClose={() => setShowUpgrade(false)} stripePromise={stripePromise} />
+        <UpgradeModal
+          onClose={() => setShowUpgrade(false)}
+          stripePromise={stripePromise}
+        />
       )}
     </div>
   );
 }
-
-export default App;
