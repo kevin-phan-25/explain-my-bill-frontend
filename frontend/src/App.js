@@ -10,7 +10,9 @@ import Loader from "./components/Loader";
 
 const stripePromise = loadStripe("pk_test_51YourTestKeyHere");
 const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
-const DEV_MODE = window.location.hostname === "localhost" || window.location.hostname.includes("127.0.0.1");
+const DEV_MODE =
+  window.location.hostname === "localhost" ||
+  window.location.hostname.includes("127.0.0.1");
 
 export default function App() {
   const [result, setResult] = useState(null);
@@ -65,7 +67,9 @@ export default function App() {
           </p>
           <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur px-5 py-2 rounded-full">
             <span className="text-xl">🔒</span>
-            <span className="text-white text-sm font-medium">Deleted immediately — never stored</span>
+            <span className="text-white text-sm font-medium">
+              Deleted immediately — never stored
+            </span>
           </div>
         </div>
       </header>
@@ -76,7 +80,10 @@ export default function App() {
         ) : (
           <>
             <div className="text-center mb-6">
-              <button onClick={reset} className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm">
+              <button
+                onClick={reset}
+                className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm"
+              >
                 ← Analyze Another Bill
               </button>
             </div>
@@ -104,7 +111,10 @@ export default function App() {
             { icon: "🛡️", title: "No Account", desc: "No sign-up needed" },
             { icon: "⚡", title: "Secure", desc: "Private processing" },
           ].map((i, k) => (
-            <div key={k} className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-2xl p-6 text-center border border-white/20">
+            <div
+              key={k}
+              className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-2xl p-6 text-center border border-white/20"
+            >
               <div className="text-5xl mb-3">{i.icon}</div>
               <h3 className="text-xl font-bold mb-2">{i.title}</h3>
               <p className="text-gray-600 dark:text-gray-400 text-sm">{i.desc}</p>
