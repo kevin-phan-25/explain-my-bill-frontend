@@ -104,9 +104,6 @@ export default function BillUploader({ onResult, onLoading }) {
               ✅ Evidence snippets
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              🧠 OpenAI + Gemini summary
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
               🔒 No account / no storage
             </div>
           </div>
