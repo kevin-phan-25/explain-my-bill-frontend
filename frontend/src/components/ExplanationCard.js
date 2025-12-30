@@ -7,7 +7,6 @@
 import React, { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import PaidFeatures from "./PaidFeatures";
-import StripeCheckoutButton from "./StripeCheckoutButton";
 import DisputeLetterGenerator from "./DisputeLetterGenerator"; // ← NEW
 
 export default function ExplanationCard({ result, onAnalyzeAnother, isProcessing = false, processingError = null }) {
