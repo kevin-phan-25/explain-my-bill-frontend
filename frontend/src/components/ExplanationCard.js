@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 
-export default function ExplanationCard({ result }) {
+export default function ExplanationCard({ result, onAnalyzeAnother }) {
   const [showExplanation, setShowExplanation] = useState(true);
   const [showNextSteps, setShowNextSteps] = useState(true);
   const [showRawText, setShowRawText] = useState(false);
@@ -124,10 +124,10 @@ export default function ExplanationCard({ result }) {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-8">
-      {/* Lively Modern Header */}
+      {/* Lively Modern Header with Analyze Another Button */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-2xl">
         <div className="rounded-[22px] bg-white p-8">
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
             <div>
               <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
                 Your Bill Explained
@@ -136,10 +136,22 @@ export default function ExplanationCard({ result }) {
                 We instantly analyzed your bill with care. Nothing is stored — your privacy is protected.
               </p>
             </div>
-            <div className="text-6xl">💡</div>
+
+            {/* Fancy Analyze Another Button – in the original spot, centered on mobile */}
+            <div className="flex justify-center md:justify-end">
+              <button
+                onClick={onAnalyzeAnother || (() => window.location.reload())}
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-pink-600 text-white px-8 py-4 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+              >
+                <span className="text-2xl">←</span>
+                Analyze Another Bill
+              </button>
+            </div>
+
+            <div className="text-6xl hidden md:block">💡</div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-2xl">
               <span className="text-2xl">✓</span>
               <span className="font-semibold text-gray-800 text-sm">No account needed</span>
@@ -171,6 +183,7 @@ export default function ExplanationCard({ result }) {
         </div>
       </div>
 
+      {/* Rest of the content remains unchanged */}
       {/* Compact Key Amount Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {safe.entries.map((field) => {
@@ -347,7 +360,7 @@ export default function ExplanationCard({ result }) {
       )}
 
       {/* Footer */}
-      <div className="text-center text-gray-500 text-sm">
+      <div className="text-center text-gray-500 text-sm mt-12">
         <p>Educational tool • Not medical/legal advice • Not HIPAA-certified</p>
         <p className="mt-1">Always confirm with your provider before paying.</p>
       </div>
