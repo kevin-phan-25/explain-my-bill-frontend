@@ -9,279 +9,356 @@ import ReportIncorrectAmount from "./ReportIncorrectAmount";
 import ConfidenceGate from "./ConfidenceGate";
 import DisputeLetterGenerator from "./DisputeLetterGenerator";
 
-function pct(conf) {
-  const n = Number(conf || 0);
-  return Math.max(0, Math.min(100, Math.round(n * 100)));
-}
-
-function labelizeKey(k) {
-  return k
-    .replace(/_/g, " ")
-    .replace(/([A-Z])/g, " $1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 export default function ExplanationCard({ result }) {
+  // ✅ Hooks MUST be called before any return
   const [open, setOpen] = useState(true);
   const [showLegend, setShowLegend] = useState(false);
   const [hovered, setHovered] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
-  if (!result?.pages?.length) {
-    return <p className="text-center">No data returned.</p>;
+  // ✅ Derive values safely (and only once)
+  const derived = useMemo(() => {
+    const hasPages = !!result?.pages?.length;
+    const page = hasPages ? result.pages[0] : null;
+    const structured = page?.structured || {};
+    const keyAmounts = structured?.keyAmounts || {};
+    const explanation =
+      structured?.explanation || result?.explanation || "No explanation available.";
+    const points = structured?.summaryPoints || [];
+    const nextSteps = structured?.nextSteps || [];
+    const rawText = page?.rawText || "";
+    const confidenceMeta = structured?.confidenceMeta || {};
+
+    // Normalize the amounts into consistent cards (handles your current schema)
+    const fields = Object.entries(keyAmounts)
+      .map(([k, v]) => {
+        if (!v || typeof v !== "object") return null;
+        return {
+          key: k,
+          label: (v.label || k).replace(/([A-Z])/g, " $1").trim(),
+          value: v.value ?? "—",
+          confidence: typeof v.confidence === "number" ? v.confidence : 0,
+          reason: v.reason || "",
+          source: v.source || "",
+          raw: v.raw || "",
+          aiExplanation: v.aiExplanation || "",
+        };
+      })
+      .filter(Boolean);
+
+    // Suspicious-data detection: same value repeated or weird tiny values
+    const valuesOnly = fields.map((f) => String(f.value || ""));
+    const uniqueValues = new Set(valuesOnly.filter((v) => v && v !== "—"));
+    const repeated = uniqueValues.size <= Math.max(1, Math.floor(fields.length / 2));
+
+    const tinyMoney = fields.some((f) => {
+      const n = Number(String(f.value).replace(/[$,]/g, ""));
+      return isFinite(n) && n > 0 && n < 5; // catches $1.00 style junk
+    });
+
+    const debugHint = repeated || tinyMoney;
+
+    return {
+      hasPages,
+      page,
+      structured,
+      keyAmounts,
+      fields,
+      explanation,
+      points,
+      nextSteps,
+      rawText,
+      confidenceMeta,
+      debugHint,
+    };
+  }, [result]);
+
+  if (!derived.hasPages) {
+    return <p className="text-center text-gray-300">No data returned.</p>;
   }
 
-  const page = result.pages[0];
-  const structured = page.structured || {};
-  const explanation =
-    structured.explanation || result.explanation || "No explanation available.";
-  const keyAmounts = structured.keyAmounts || {};
-  const points = structured.summaryPoints || [];
-  const nextSteps = structured.nextSteps || [];
-  const rawText = page.rawText || "";
+  const {
+    fields,
+    explanation,
+    points,
+    nextSteps,
+    rawText,
+    confidenceMeta,
+    debugHint,
+  } = derived;
 
-  const amountEntries = useMemo(() => {
-    // Hide _debug card from main cards unless you want it visible
-    return Object.entries(keyAmounts).filter(([k, v]) => k !== "_debug" && v && typeof v === "object");
-  }, [keyAmounts]);
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.text("ExplainMyBill Report", 10, 15);
+    doc.setFont("helvetica", "normal");
+    doc.text("Educational use only. Verify amounts before paying.", 10, 25);
 
-  const confidenceMeta = structured.confidenceMeta || {};
-  const sourceType = confidenceMeta.sourceType || result?.extractionMeta?.sourceType || "unknown";
+    doc.text("Summary / Explanation:", 10, 40);
+    const lines = doc.splitTextToSize(explanation || "", 180);
+    doc.text(lines, 10, 50);
+
+    doc.addPage();
+    doc.setFont("helvetica", "bold");
+    doc.text("Extracted Text (Debug)", 10, 15);
+    doc.setFont("helvetica", "normal");
+    const rawLines = doc.splitTextToSize(rawText || "No raw text.", 180);
+    doc.text(rawLines, 10, 25);
+
+    doc.save("explainmybill-report.pdf");
+  };
 
   return (
-    <div className="relative max-w-5xl mx-auto space-y-6">
-      {/* Main panel */}
-      <div className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-[28px] border border-white/20 shadow-2xl overflow-hidden">
+    <div className="relative">
+      {/* Ambient background glow */}
+      <div className="absolute -inset-6 blur-3xl opacity-40 pointer-events-none bg-gradient-to-r from-indigo-500/30 via-purple-500/20 to-cyan-400/20" />
+
+      <div className="relative max-w-5xl mx-auto rounded-3xl border border-white/10 bg-slate-950/60 backdrop-blur-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 sm:p-8 border-b border-white/10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
                 Your Bill Explained
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 max-w-2xl">
-                Clear, human-friendly guidance with confidence scoring. Educational use only —
-                verify totals before paying.
+              <p className="mt-2 text-sm sm:text-base text-white/70 max-w-2xl">
+                Clear, human-friendly guidance with confidence scoring. This is for education —
+                always verify totals before paying.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-white/20">
-                  🔒 processed transiently
-                </span>
-                <span className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-white/20">
-                  📌 confidence + source shown
-                </span>
-                <span className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-white/20">
-                  🧾 source: {sourceType}
-                </span>
+                <Badge icon="🔒" text="processed transiently (never stored)" />
+                <Badge icon="✅" text="confidence + source shown" />
+                <Badge icon="⚡" text="fast explanation" />
+                {confidenceMeta?.sourceType && (
+                  <Badge icon="🧾" text={`source: ${confidenceMeta.sourceType}`} />
+                )}
               </div>
             </div>
 
             <div className="flex flex-col gap-2 sm:items-end">
               <button
                 onClick={() => setShowLegend(true)}
-                className="text-sm font-semibold text-indigo-600 dark:text-indigo-300 underline underline-offset-4"
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white/90 bg-white/10 hover:bg-white/15 border border-white/10"
               >
                 What do confidence scores mean?
               </button>
 
               <button
-                onClick={() => setShowRaw((v) => !v)}
-                className="text-sm font-semibold px-4 py-2 rounded-full border border-white/20 bg-white/50 dark:bg-white/5 backdrop-blur hover:scale-[1.02]"
+                onClick={downloadPDF}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
               >
-                {showRaw ? "Hide extracted text" : "View extracted text"}
+                Download Report (PDF)
               </button>
             </div>
           </div>
+
+          <p className="mt-4 text-xs text-white/50">
+            Educational use only. No medical, legal, or billing advice. Not HIPAA-certified.
+          </p>
         </div>
 
         {/* Amount cards */}
         <div className="p-6 sm:p-8">
+          {debugHint && (
+            <div className="mb-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm text-yellow-100">
+              <div className="flex items-start gap-3">
+                <div className="text-lg">⚠️</div>
+                <div className="flex-1">
+                  <p className="font-semibold">
+                    Extraction looks suspicious (repeated values or tiny amounts).
+                  </p>
+                  <p className="text-yellow-100/80 mt-1">
+                    Turn on <span className="font-semibold">Raw Text Preview</span> to verify what
+                    Google Vision extracted. If the raw text is good, the issue is likely your
+                    field-matching logic — not OCR.
+                  </p>
+
+                  <button
+                    onClick={() => setShowDebug((v) => !v)}
+                    className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-semibold"
+                  >
+                    {showDebug ? "Hide Debug Panel" : "Show Debug Panel"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showDebug && (
+            <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/80">
+              <p className="font-bold text-white mb-2">Debug</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-xl bg-black/30 p-3 border border-white/10">
+                  <p className="text-white/60">Source Type</p>
+                  <p className="font-semibold text-white">
+                    {confidenceMeta?.sourceType || "unknown"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-black/30 p-3 border border-white/10">
+                  <p className="text-white/60">Used OCR fallback</p>
+                  <p className="font-semibold text-white">
+                    {String(confidenceMeta?.usedOCR ?? "unknown")}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 text-white/60">
+                Tip: If raw text contains “PAY THIS AMOUNT 111.41” but your cards show $992 or
+                $14,561 — your regex/heuristics are grabbing the wrong numbers.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {amountEntries.map(([k, v]) => {
-              const c = pct(v.confidence);
-              const isLow = c > 0 && c < 60;
+            {fields.map((f) => (
+              <div
+                key={f.key}
+                className="relative rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-5 overflow-hidden"
+                onMouseEnter={() => setHovered(f.key)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                {/* Subtle glow accent */}
+                <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-gradient-to-r from-indigo-400/20 to-purple-400/10 blur-3xl pointer-events-none" />
 
-              return (
-                <div
-                  key={k}
-                  className="relative rounded-3xl p-5 border border-white/15 bg-gradient-to-b from-white/70 to-white/30 dark:from-white/5 dark:to-white/0 shadow-xl overflow-hidden"
-                  onMouseEnter={() => setHovered(k)}
-                  onMouseLeave={() => setHovered(null)}
-                >
+                <div className="relative">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {labelizeKey(k)}
-                      </p>
+                    <p className="text-sm font-semibold text-white/85">{f.label}</p>
 
-                      <ConfidenceGate confidence={v.confidence}>
-                        <p className="text-2xl font-extrabold mt-1">
-                          {v.value || "—"}
-                        </p>
-                      </ConfidenceGate>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="text-xs px-2.5 py-1 rounded-full border border-white/20 bg-white/50 dark:bg-white/5">
-                        <span className="font-semibold">{c}%</span>{" "}
-                        <span className="text-gray-500 dark:text-gray-400">
-                          confidence
-                        </span>
-                      </div>
-                      {isLow && (
-                        <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
-                          verify this one
-                        </div>
-                      )}
+                    <div className="rounded-full px-3 py-1 text-xs font-bold border border-white/10 bg-black/30 text-white/80">
+                      {Math.round((f.confidence || 0) * 100)}%
                     </div>
                   </div>
 
-                  {/* confidence bar */}
-                  <div className="mt-4">
-                    <div className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+                  <div className="mt-3">
+                    <ConfidenceGate confidence={f.confidence}>
+                      <p className="text-3xl font-extrabold text-white tracking-tight">
+                        {f.value || "—"}
+                      </p>
+                    </ConfidenceGate>
+
+                    {/* Confidence bar */}
+                    <div className="mt-4 h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
-                          width: `${c}%`,
+                          width: `${Math.max(0, Math.min(100, (f.confidence || 0) * 100))}%`,
                           background:
-                            c >= 80
-                              ? "linear-gradient(90deg,#22c55e,#16a34a)"
-                              : c >= 60
-                              ? "linear-gradient(90deg,#facc15,#f59e0b)"
-                              : "linear-gradient(90deg,#fb7185,#ef4444)",
+                            (f.confidence || 0) >= 0.8
+                              ? "linear-gradient(90deg, rgba(16,185,129,1), rgba(34,197,94,1))"
+                              : (f.confidence || 0) >= 0.5
+                              ? "linear-gradient(90deg, rgba(234,179,8,1), rgba(245,158,11,1))"
+                              : "linear-gradient(90deg, rgba(239,68,68,1), rgba(244,63,94,1))",
                         }}
                       />
                     </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
-                      {v.source ? `Source: ${v.source}` : "Source: —"}
+
+                    <p className="mt-2 text-xs text-white/55 line-clamp-2">
+                      {f.reason ? f.reason : "—"}
                     </p>
-                  </div>
 
-                  <LowConfidenceFlag confidence={v.confidence} />
-                  <FieldAIExplanation explanation={v.aiExplanation} />
+                    <LowConfidenceFlag confidence={f.confidence} />
+                    <FieldAIExplanation explanation={f.aiExplanation} />
 
-                  <div className="mt-4 space-y-2">
-                    <ReportIncorrectAmount field={k} value={v.value} />
-                    <DisputeLetterGenerator
-                      field={k}
-                      value={v.value}
-                      confidence={v.confidence}
-                    />
-                  </div>
-
-                  {/* Tooltip */}
-                  {hovered === k && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20">
-                      <div className="space-y-2">
-                        <ConfidenceTooltip confidence={v.confidence} source={v.source} />
-                        {(v.matchLine || v.matchMethod) && (
-                          <div className="w-[320px] rounded-2xl border border-white/20 bg-white/80 dark:bg-black/60 backdrop-blur p-3 shadow-2xl">
-                            <p className="text-xs font-bold mb-1">
-                              Why this value was chosen
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-300">
-                              Method:{" "}
-                              <span className="font-semibold">{v.matchMethod || "—"}</span>
-                            </p>
-                            {v.matchLine && (
-                              <p className="text-xs text-gray-600 dark:text-gray-300 mt-2">
-                                Match line:
-                                <span className="block font-mono text-[11px] mt-1 whitespace-pre-wrap">
-                                  {v.matchLine}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                    <div className="mt-4 space-y-2">
+                      <ReportIncorrectAmount field={f.key} value={f.value} />
+                      <DisputeLetterGenerator
+                        field={f.key}
+                        value={f.value}
+                        confidence={f.confidence}
+                      />
                     </div>
-                  )}
+
+                    {hovered === f.key && (
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20">
+                        <ConfidenceTooltip confidence={f.confidence} source={f.source} />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
+          {/* Heatmap */}
           <div className="mt-10">
-            <ConfidenceHeatMap keyAmounts={keyAmounts} />
+            <h3 className="text-center text-white font-extrabold text-xl mb-4">
+              Confidence by Field
+            </h3>
+            <ConfidenceHeatMap keyAmounts={derived.keyAmounts} />
           </div>
 
           {/* Explanation */}
-          <div className="mt-10 rounded-3xl border border-white/15 bg-white/50 dark:bg-white/5 backdrop-blur p-5 sm:p-6">
+          <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-5">
             <button
               onClick={() => setOpen(!open)}
-              className="font-extrabold flex justify-between w-full text-left"
+              className="w-full flex items-center justify-between text-left"
             >
-              <span>
-                Explanation{" "}
-                <span className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1">
-                  Plain-English summary + pointers + suggested next steps
-                </span>
-              </span>
-              <span className="text-2xl leading-none">{open ? "−" : "+"}</span>
+              <div>
+                <p className="text-white font-extrabold text-lg">Explanation</p>
+                <p className="text-xs text-white/60">
+                  Plain-English summary + pointers and suggested next steps
+                </p>
+              </div>
+              <span className="text-white/80 text-2xl">{open ? "−" : "+"}</span>
             </button>
 
             {open && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-3 text-white/85 text-sm leading-relaxed">
                 {points.map((p, i) => (
-                  <p key={i} className="text-sm text-gray-700 dark:text-gray-200">
-                    • {p}
-                  </p>
+                  <p key={i}>• {p}</p>
                 ))}
-
-                <div className="rounded-2xl border border-white/10 bg-black/5 dark:bg-white/5 p-4">
-                  <p className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-100">
-                    {explanation}
-                  </p>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="whitespace-pre-wrap">{explanation}</p>
                 </div>
 
                 {nextSteps.length > 0 && (
-                  <>
-                    <p className="font-extrabold mt-2">Next Steps:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {nextSteps.map((s, i) => (
-                        <div
-                          key={i}
-                          className="rounded-2xl border border-white/10 bg-white/60 dark:bg-white/5 p-3 text-sm"
-                        >
-                          ✅ {s}
-                        </div>
-                      ))}
-                    </div>
-                  </>
+                  <div className="pt-2">
+                    <p className="font-extrabold text-white mt-2">Next Steps:</p>
+                    {nextSteps.map((s, i) => (
+                      <p key={i}>• {s}</p>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Raw text viewer */}
-          {showRaw && (
-            <div className="mt-6 rounded-3xl border border-white/15 bg-white/60 dark:bg-white/5 backdrop-blur p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-4">
-                <h3 className="font-extrabold text-lg">Extracted Text (Debug/Trust)</h3>
-                <button
-                  onClick={() => setShowRaw(false)}
-                  className="text-sm font-semibold px-4 py-2 rounded-full border border-white/20 bg-white/50 dark:bg-white/5"
-                >
-                  Close
-                </button>
+          {/* Raw text (debug/trust) */}
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+            <button
+              onClick={() => setShowRaw((v) => !v)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div>
+                <p className="text-white font-extrabold">Extracted Text Preview (Debug/Trust)</p>
+                <p className="text-xs text-white/60">
+                  Shows what the OCR extracted before sending to OpenAI/Gemini
+                </p>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                This is exactly what OCR/Text extraction produced before AI analysis.
-              </p>
+              <span className="text-white/80 text-2xl">{showRaw ? "−" : "+"}</span>
+            </button>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/5 dark:bg-black/30 p-4 max-h-[320px] overflow-auto">
-                <pre className="whitespace-pre-wrap text-xs font-mono text-gray-800 dark:text-gray-100">
-                  {rawText || "No raw text returned."}
-                </pre>
-              </div>
-            </div>
-          )}
+            {showRaw && (
+              <pre className="mt-4 max-h-80 overflow-auto text-xs whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
+                {rawText || "No raw text returned."}
+              </pre>
+            )}
+          </div>
         </div>
-      </div>
 
-      {showLegend && <ConfidenceLegendModal onClose={() => setShowLegend(false)} />}
+        {showLegend && <ConfidenceLegendModal onClose={() => setShowLegend(false)} />}
+      </div>
     </div>
+  );
+}
+
+function Badge({ icon, text }) {
+  return (
+    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border border-white/10 bg-white/5 text-white/80">
+      <span>{icon}</span>
+      <span>{text}</span>
+    </span>
   );
 }
