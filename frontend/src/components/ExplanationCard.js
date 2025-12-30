@@ -1,6 +1,15 @@
-// src/components/ExplanationCard.js
+// src/components/ExplanationCard.js — FULL FINAL UPDATE WITH ALL BACKEND FEATURES (December 30, 2025)
+// ✅ Multi-page support
+// ✅ Vibrant number highlighting
+// ✅ Itemized line highlighting in raw text
+// ✅ Professional PDF report
+// ✅ Future Tools section
+// ✅ Paid features ready (red flags, savings, services)
+// ✅ All previous design preserved and enhanced
+
 import React, { useMemo, useState } from "react";
 import jsPDF from "jspdf";
+import PaidFeatures from "./PaidFeatures"; // <-- Your PaidFeatures component
 
 export default function ExplanationCard({ result, onAnalyzeAnother }) {
   const [showExplanation, setShowExplanation] = useState(true);
@@ -26,6 +35,7 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
       nextSteps: structured.nextSteps || [],
       rawText: currentPage.rawText || "",
       totalPages: pages.length,
+      paidFeatures: result?.paidFeatures || null, // From overcharge detection, etc.
     };
   }, [result, activePage]);
 
@@ -132,7 +142,14 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     if (!text) return null;
     return text.split(/(\$[0-9,]+\.?\d*)/g).map((part, i) => {
       if (/^\$[0-9,]+\.?\d*$/.test(part)) {
-        return <span key={i} className="font-black text-4xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">{part}</span>;
+        return (
+          <span
+            key={i}
+            className="font-black text-4xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse"
+          >
+            {part}
+          </span>
+        );
       }
       return <span key={i}>{part}</span>;
     });
@@ -142,10 +159,11 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     if (!rawText || safe.entries.length === 0) return rawText;
 
     let highlighted = rawText;
-    safe.entries.forEach(field => {
+    safe.entries.forEach((field) => {
       if (field.citations) {
-        field.citations.forEach(c => {
-          const regex = new RegExp(`(${c.text.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        field.citations.forEach((c) => {
+          const escaped = c.text.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(`(${escaped})`, "gi");
           highlighted = highlighted.replace(regex, '<mark class="bg-yellow-200 px-2 py-1 rounded font-semibold">$1</mark>');
         });
       }
@@ -168,7 +186,6 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
                 We instantly analyzed your bill with care. Nothing is stored — your privacy is protected.
               </p>
             </div>
-
             <button
               onClick={onAnalyzeAnother || (() => window.location.reload())}
               className="inline-flex items-center gap-2 bg-white border-2 border-indigo-600 text-indigo-600 px-5 py-2.5 rounded-full font-bold text-base hover:bg-indigo-50 transition"
@@ -206,7 +223,6 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
             >
               How confidence works
             </button>
-
             <button
               onClick={downloadPDF}
               className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-700 to-purple-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl transition-all"
@@ -245,12 +261,16 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
 
       {/* Key Amount Cards */}
       <div className="grid md:grid-cols-3 gap-6">
-        {safe.entries.map(field => {
+        {safe.entries.map((field) => {
           const style = getStyle(field.confidence);
           const pct = Math.round((field.confidence || 0) * 100);
 
           return (
-            <div key={field.label} className="bg-white rounded-2xl shadow-lg p-6 border-t-4" style={{ borderTopColor: style.color }}>
+            <div
+              key={field.label}
+              className="bg-white rounded-2xl shadow-lg p-6 border-t-4"
+              style={{ borderTopColor: style.color }}
+            >
               <h3 className="text-lg font-semibold text-gray-700 mb-2">{field.label}</h3>
               <p className="text-4xl font-black text-gray-900 mb-6">{field.value}</p>
 
@@ -261,9 +281,12 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
                     <span className="font-bold text-gray-900">{pct}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className={`h-3 rounded-full transition-all duration-700`} style={{ width: `${pct}%`, backgroundColor: style.color }} />
+                    <div
+                      className="h-3 rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, backgroundColor: style.color }}
+                    />
                   </div>
-                  <p className="text-sm font-medium text-gray-700 mt-2">{style.text}</p>
+                  <p className="text-sm font-medium text-gray-700 mt-2">{style.label}</p>
                 </div>
 
                 {field.citations?.length > 0 && (
@@ -299,9 +322,7 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
             <p className="text-lg text-gray-700 leading-relaxed">{safe.summary}</p>
 
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500 p-6 rounded-r-xl">
-              <p className="text-lg text-gray-800 leading-loose">
-                {highlightNumbers(safe.explanation)}
-              </p>
+              <p className="text-lg text-gray-800 leading-loose">{highlightNumbers(safe.explanation)}</p>
             </div>
           </div>
         )}
@@ -320,7 +341,10 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
         {showNextSteps && (
           <div className="px-8 pb-8 pt-4 space-y-5">
             {safe.nextSteps.map((step, i) => (
-              <div key={i} className="flex items-center gap-5 p-5 bg-gradient-to-r from-indigo-50 to-pink-50 rounded-xl border border-indigo-100">
+              <div
+                key={i}
+                className="flex items-center gap-5 p-5 bg-gradient-to-r from-indigo-50 to-pink-50 rounded-xl border border-indigo-100"
+              >
                 <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-600 to-pink-600 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-md">
                   {i + 1}
                 </div>
@@ -330,6 +354,9 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
           </div>
         )}
       </div>
+
+      {/* === PAID FEATURES FROM BACKEND === */}
+      <PaidFeatures features={safe.paidFeatures} />
 
       {/* Future Insurance Claim Tools */}
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-3xl p-8 border-2 border-purple-300">
@@ -347,28 +374,36 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
           <div className="mt-8 grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
               <h3 className="text-xl font-bold text-purple-700 mb-3">EOB Comparison Tool</h3>
-              <p className="text-gray-700">Upload your provider bill + insurance EOB → instantly spot discrepancies, overcharges, or missing adjustments.</p>
+              <p className="text-gray-700">
+                Upload your provider bill + insurance EOB → instantly spot discrepancies, overcharges, or missing adjustments.
+              </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
               <h3 className="text-xl font-bold text-purple-700 mb-3">Appeal Letter Generator</h3>
-              <p className="text-gray-700">Auto-generates professional appeal letters with evidence citations — ready to send to your insurer.</p>
+              <p className="text-gray-700">
+                Auto-generates professional appeal letters with evidence citations — ready to send to your insurer.
+              </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
               <h3 className="text-xl font-bold text-purple-700 mb-3">Overcharge Detector</h3>
-              <p className="text-gray-700">Compares your charges to Medicare and FAIR Health averages — flags potential overbilling.</p>
+              <p className="text-gray-700">
+                Compares your charges to Medicare and FAIR Health averages — flags potential overbilling.
+              </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
               <h3 className="text-xl font-bold text-purple-700 mb-3">Prior Auth Tracker</h3>
-              <p className="text-gray-700">Track pre-approvals, deadlines, and status — never miss a prior authorization again.</p>
+              <p className="text-gray-700">
+                Track pre-approvals, deadlines, and status — never miss a prior authorization again.
+              </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Raw Text with Highlighting */}
+      {/* Raw Text with Itemized Highlighting */}
       <div className="bg-gray-100 rounded-2xl p-6">
         <button
           onClick={() => setShowRawText(!showRawText)}
@@ -380,12 +415,14 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
         {showRawText && (
           <pre
             className="mt-4 p-6 bg-white rounded-xl text-sm text-gray-700 overflow-x-auto border"
-            dangerouslySetInnerHTML={{ __html: highlightItemizedLines(safe.rawText) || "No raw text available." }}
+            dangerouslySetInnerHTML={{
+              __html: highlightItemizedLines(safe.rawText) || "No raw text available.",
+            }}
           />
         )}
       </div>
 
-      {/* Confidence Help */}
+      {/* Confidence Help Modal */}
       {showHelp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
@@ -393,15 +430,24 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
             <div className="space-y-5">
               <div className="flex items-center gap-4">
                 <div className="w-8 h-8 bg-emerald-500 rounded-full"></div>
-                <div><strong>High (85%+)</strong><p className="text-sm text-gray-600">Clear label and exact match</p></div>
+                <div>
+                  <strong>High (85%+)</strong>
+                  <p className="text-sm text-gray-600">Clear label and exact match</p>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-8 h-8 bg-amber-500 rounded-full"></div>
-                <div><strong>Moderate (60–84%)</strong><p className="text-sm text-gray-600">Good but from image scan</p></div>
+                <div>
+                  <strong>Moderate (60–84%)</strong>
+                  <p className="text-sm text-gray-600">Good but from image scan</p>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-8 h-8 bg-red-500 rounded-full"></div>
-                <div><strong>Low (&lt;60%)</strong><p className="text-sm text-gray-600">Uncertain — always verify</p></div>
+                <div>
+                  <strong>Low (&lt;60%)</strong>
+                  <p className="text-sm text-gray-600">Uncertain — always verify</p>
+                </div>
               </div>
             </div>
             <button
