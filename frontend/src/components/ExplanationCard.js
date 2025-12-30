@@ -6,230 +6,108 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
   const [showExplanation, setShowExplanation] = useState(true);
   const [showNextSteps, setShowNextSteps] = useState(true);
   const [showRawText, setShowRawText] = useState(false);
-  const [showConfidenceHelp, setShowConfidenceHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const safe = useMemo(() => {
-    const pages = result?.pages || [];
-    const page0 = pages[0] || {};
-    const structured = page0.structured || {};
+    const structured = result?.pages?.[0]?.structured || {};
     const keyAmounts = structured.keyAmounts || {};
-    const summary = structured.summary || "Your bill has been analyzed.";
-    const explanation =
-      structured.explanation ||
-      "We’ve read your bill and highlighted the most important amounts below.";
-    const nextSteps = Array.isArray(structured.nextSteps)
-      ? structured.nextSteps
-      : [
-          "Compare this with your Explanation of Benefits (EOB) from your insurance company.",
-          "Contact your provider or insurer if anything seems incorrect.",
-          "Keep this report for your records.",
-        ];
-    const confidenceMeta = structured.confidenceMeta || {};
-    const rawText = page0.rawText || "";
-
-    const entries = Object.entries(keyAmounts)
-      .filter(([, v]) => v && typeof v === "object" && v.label)
-      .map(([key, v]) => ({
-        key,
-        ...v,
-      }));
+    const entries = Object.values(keyAmounts).filter(f => f && f.label);
 
     return {
-      hasData: entries.length > 0 || rawText,
       entries,
-      summary,
-      explanation,
-      nextSteps,
-      confidenceMeta,
-      rawText,
+      summary: structured.summary || "Your bill has been analyzed.",
+      explanation: structured.explanation || "See breakdown below.",
+      nextSteps: structured.nextSteps || [],
+      rawText: result?.pages?.[0]?.rawText || "",
     };
   }, [result]);
 
-  if (!safe.hasData) {
-    return (
-      <div className="max-w-3xl mx-auto p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-          <p className="text-lg text-gray-700">No readable data was found in your bill.</p>
-          <p className="text-gray-500 mt-3">
-            Try uploading a clearer photo or the original PDF.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const downloadPDF = () => {
-    try {
-      const doc = new jsPDF();
-      let y = 15;
+    const doc = new jsPDF();
+    let y = 20;
+    doc.setFontSize(20);
+    doc.text("ExplainMyBill Report", 20, y); y += 15;
+    doc.setFontSize(11);
+    doc.text(safe.summary, 20, y, { maxWidth: 170 }); y += 20;
 
-      doc.setFontSize(18);
-      doc.text("ExplainMyBill Report", 15, y);
-      y += 12;
+    safe.entries.forEach(f => {
+      doc.setFontSize(12);
+      doc.text(`${f.label}: ${f.value}`, 30, y); y += 10;
+    });
 
-      doc.setFontSize(9);
-      doc.text("Educational tool only • Always verify with your provider", 15, y);
-      y += 12;
-
-      doc.setFontSize(13);
-      doc.text("Summary", 15, y);
-      y += 8;
-      doc.setFontSize(10);
-      doc.text(safe.summary, 15, y, { maxWidth: 180 });
-      y += 18;
-
-      doc.setFontSize(13);
-      doc.text("Key Amounts", 15, y);
-      y += 8;
-
-      safe.entries.forEach((field) => {
-        const pct = Math.round((field.confidence || 0) * 100);
-        doc.setFontSize(11);
-        doc.text(`${field.label}: ${field.value}`, 25, y);
-        y += 7;
-        doc.setFontSize(9);
-        doc.text(`Confidence: ${pct}%`, 25, y);
-        y += 10;
-      });
-
-      doc.save("ExplainMyBill_Report.pdf");
-    } catch (e) {
-      console.error(e);
-      alert("Could not generate PDF. Please try again.");
-    }
+    doc.save("explainmybill_report.pdf");
   };
 
-  const getConfidenceStyle = (confidence) => {
-    const pct = Math.round(confidence * 100);
-    if (pct >= 85) {
-      return {
-        borderColor: "#10b981",
-        bgBar: "bg-emerald-500",
-        text: "High confidence",
-      };
-    }
-    if (pct >= 60) {
-      return {
-        borderColor: "#f59e0b",
-        bgBar: "bg-amber-500",
-        text: "Moderate confidence",
-      };
-    }
-    return {
-      borderColor: "#ef4444",
-      bgBar: "bg-red-500",
-      text: "Low confidence – double-check",
-    };
+  const getStyle = (c) => {
+    const pct = Math.round((c || 0) * 100);
+    if (pct >= 85) return { color: "#10b981", label: "High confidence" };
+    if (pct >= 60) return { color: "#f59e0b", label: "Moderate confidence" };
+    return { color: "#ef4444", label: "Low confidence — double-check" };
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-8">
-      {/* Lively Modern Header with Analyze Another Button */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-2xl">
-        <div className="rounded-[22px] bg-white p-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-10">
+      {/* Header */}
+      <div className="rounded-3xl bg-gradient-to-br from-indigo-600 to-pink-600 p-1 shadow-2xl">
+        <div className="bg-white rounded-[26px] p-10">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
                 Your Bill Explained
               </h1>
-              <p className="text-gray-600 mt-3 max-w-lg">
-                We instantly analyzed your bill with care. Nothing is stored — your privacy is protected.
+              <p className="text-xl text-gray-600 mt-4">
+                We read your bill carefully. Nothing is stored — your privacy is 100% protected.
               </p>
             </div>
-
-            {/* Fancy Analyze Another Button – in the original spot, centered on mobile */}
-            <div className="flex justify-center md:justify-end">
-              <button
-                onClick={onAnalyzeAnother || (() => window.location.reload())}
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-pink-600 text-white px-8 py-4 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
-              >
-                <span className="text-2xl">←</span>
-                Analyze Another Bill
-              </button>
-            </div>
-
-            <div className="text-6xl hidden md:block">💡</div>
+            <button
+              onClick={onAnalyzeAnother || (() => location.reload())}
+              className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-pink-600 text-white rounded-full font-bold text-lg shadow-xl hover:scale-105 transition"
+            >
+              ← Analyze Another Bill
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-2xl">
-              <span className="text-2xl">✓</span>
-              <span className="font-semibold text-gray-800 text-sm">No account needed</span>
-            </div>
-            <div className="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-2xl">
-              <span className="text-2xl">✓</span>
-              <span className="font-semibold text-gray-800 text-sm">Deleted instantly</span>
-            </div>
-            <div className="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-2xl">
-              <span className="text-2xl">✓</span>
-              <span className="font-semibold text-gray-800 text-sm">Clear evidence shown</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-4 items-center">
-            <button
-              onClick={() => setShowConfidenceHelp(true)}
-              className="text-indigo-600 font-medium underline hover:no-underline"
-            >
-              How confidence works
-            </button>
-            <button
-              onClick={downloadPDF}
-              className="bg-gradient-to-r from-indigo-600 to-pink-600 text-white px-6 py-3 rounded-full font-bold hover:shadow-xl transition-shadow"
-            >
-              Download Report
-            </button>
+          <div className="grid grid-cols-3 gap-6 mt-10">
+            {["No account needed", "Deleted instantly", "Evidence shown"].map((t, i) => (
+              <div key={i} className="flex items-center gap-4 bg-green-50 px-6 py-4 rounded-2xl">
+                <span className="text-3xl">✓</span>
+                <span className="font-semibold">{t}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Rest of the content remains unchanged */}
-      {/* Compact Key Amount Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {safe.entries.map((field) => {
-          const style = getConfidenceStyle(field.confidence || 0);
+      {/* Key Amounts */}
+      <div className="grid md:grid-cols-3 gap-8">
+        {safe.entries.map(field => {
+          const style = getStyle(field.confidence);
           const pct = Math.round((field.confidence || 0) * 100);
 
           return (
-            <div
-              key={field.label}
-              className="bg-white rounded-2xl shadow-lg p-6 border-t-4"
-              style={{ borderTopColor: style.borderColor }}
-            >
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                {field.label}
-              </h3>
+            <div key={field.label} className="bg-white rounded-3xl shadow-2xl p-8 border-t-8" style={{ borderTopColor: style.color }}>
+              <h3 className="text-2xl font-bold text-gray-700">{field.label}</h3>
+              <p className="text-5xl font-black text-gray-900 mt-4 mb-8">{field.value}</p>
 
-              <p className="text-4xl font-black text-gray-900 mb-6">
-                {field.value}
-              </p>
-
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Confidence</span>
-                    <span className="font-bold text-gray-900">{pct}%</span>
+                  <div className="flex justify-between text-lg mb-2">
+                    <span>Confidence</span>
+                    <span className="font-bold">{pct}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full transition-all duration-700 ${style.bgBar}`}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full transition-all duration-1000" style={{ width: `${pct}%`, backgroundColor: style.color }} />
                   </div>
-                  <p className="text-sm font-medium text-gray-700 mt-2">
-                    {style.text}
-                  </p>
+                  <p className="mt-3 font-medium text-gray-700">{style.label}</p>
                 </div>
 
-                {Array.isArray(field.citations) && field.citations.length > 0 && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      Found on these lines:
-                    </p>
-                    <ul className="space-y-1 text-xs text-gray-600">
+                {field.citations?.length > 0 && (
+                  <div className="bg-gray-50 rounded-2xl p-6">
+                    <p className="font-semibold mb-3">We found this on:</p>
+                    <ul className="space-y-2 text-sm">
                       {field.citations.slice(0, 3).map((c, i) => (
-                        <li key={i} className="font-mono bg-white px-3 py-1 rounded border">
-                          Line {c.line}: “…{c.text.trim()}…”
+                        <li key={i} className="font-mono bg-white p-3 rounded-lg border">
+                          Line {c.line}: “…{c.text}…”
                         </li>
                       ))}
                     </ul>
@@ -241,128 +119,43 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
         })}
       </div>
 
-      {/* Explanation Section */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <button
-          onClick={() => setShowExplanation(!showExplanation)}
-          className="w-full px-8 py-5 flex justify-between items-center hover:bg-gray-50 transition"
-        >
-          <h2 className="text-2xl font-bold text-gray-900">
-            Plain English Summary
-          </h2>
-          <span className="text-3xl text-gray-400 font-light">
-            {showExplanation ? "−" : "+"}
-          </span>
-        </button>
-
-        {showExplanation && (
-          <div className="px-8 pb-8 pt-4 space-y-6">
-            <p className="text-lg text-gray-800 leading-relaxed">
-              {safe.summary}
-            </p>
-
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500 p-6 rounded-r-xl">
-              <p className="text-gray-800 leading-relaxed">
-                {safe.explanation}
-              </p>
-            </div>
+      {/* Explanation & Next Steps */}
+      <div className="space-y-10">
+        <div className="bg-white rounded-3xl shadow-2xl p-10">
+          <h2 className="text-3xl font-bold mb-6">In Plain English</h2>
+          <div className="bg-gradient-to-r from-indigo-50 to-pink-50 border-l-8 border-indigo-600 p-8 rounded-r-2xl text-lg leading-relaxed">
+            <p className="font-semibold mb-4">{safe.summary}</p>
+            <p>{safe.explanation}</p>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Next Steps – Modern & Lively */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <button
-          onClick={() => setShowNextSteps(!showNextSteps)}
-          className="w-full px-8 py-5 flex justify-between items-center hover:bg-gray-50 transition"
-        >
-          <h2 className="text-2xl font-bold text-gray-900">
-            Next Steps
-          </h2>
-          <span className="text-3xl text-gray-400 font-light">
-            {showNextSteps ? "−" : "+"}
-          </span>
-        </button>
-
-        {showNextSteps && (
-          <div className="px-8 pb-8 pt-4 space-y-5">
+        <div className="bg-white rounded-3xl shadow-2xl p-10">
+          <h2 className="text-3xl font-bold mb-8">Next Steps</h2>
+          <div className="space-y-6">
             {safe.nextSteps.map((step, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-5 p-5 bg-gradient-to-r from-indigo-50 to-pink-50 rounded-xl border border-indigo-100"
-              >
-                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-600 to-pink-600 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-md">
+              <div key={i} className="flex gap-6 items-start p-6 bg-gradient-to-r from-indigo-50 to-pink-50 rounded-2xl border border-indigo-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-pink-600 text-white rounded-full flex items-center justify-center text-2xl font-bold shadow-lg">
                   {i + 1}
                 </div>
-                <p className="text-gray-800 leading-relaxed flex-1">
-                  {step}
-                </p>
+                <p className="text-lg leading-relaxed flex-1">{step}</p>
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Raw Text */}
-      <div className="bg-gray-100 rounded-2xl p-6">
-        <button
-          onClick={() => setShowRawText(!showRawText)}
-          className="text-indigo-600 font-semibold hover:underline"
-        >
-          {showRawText
-            ? "← Hide extracted text"
-            : "Show full extracted text (for verification)"}
-        </button>
-
-        {showRawText && (
-          <pre className="mt-4 p-6 bg-white rounded-xl text-sm text-gray-700 overflow-x-auto border">
-            {safe.rawText || "No raw text available."}
-          </pre>
-        )}
-      </div>
-
-      {/* Confidence Modal */}
-      {showConfidenceHelp && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
-            <h3 className="text-2xl font-bold mb-6">Confidence Explained</h3>
-            <div className="space-y-5">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 bg-emerald-500 rounded-full"></div>
-                <div>
-                  <strong>High (85%+)</strong>
-                  <p className="text-sm text-gray-600">Clear label and exact match</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 bg-amber-500 rounded-full"></div>
-                <div>
-                  <strong>Moderate (60–84%)</strong>
-                  <p className="text-sm text-gray-600">Good but from image scan</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 bg-red-500 rounded-full"></div>
-                <div>
-                  <strong>Low (&lt;60%)</strong>
-                  <p className="text-sm text-gray-600">Uncertain — always verify</p>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowConfidenceHelp(false)}
-              className="mt-8 w-full bg-gradient-to-r from-indigo-600 to-pink-600 text-white py-3 rounded-xl font-bold"
-            >
-              Got it!
-            </button>
-          </div>
         </div>
-      )}
+      </div>
+
+      {/* Raw Text Toggle */}
+      <div className="text-center">
+        <button onClick={() => setShowRawText(!showRawText)} className="text-indigo-600 font-bold text-lg hover:underline">
+          {showRawText ? "Hide" : "Show"} full extracted text for verification
+        </button>
+        {showRawText && <pre className="mt-6 p-8 bg-gray-100 rounded-2xl text-sm overflow-x-auto">{safe.rawText}</pre>}
+      </div>
 
       {/* Footer */}
-      <div className="text-center text-gray-500 text-sm mt-12">
-        <p>Educational tool • Not medical/legal advice • Not HIPAA-certified</p>
-        <p className="mt-1">Always confirm with your provider before paying.</p>
+      <div className="text-center text-gray-500 text-sm mt-16">
+        <p>Educational tool • Not medical or legal advice • Not HIPAA-certified</p>
+        <p className="mt-2">Always confirm with your provider and insurer before paying.</p>
       </div>
     </div>
   );
