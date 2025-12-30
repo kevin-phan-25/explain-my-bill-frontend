@@ -101,10 +101,13 @@ export default function BillUploader({ onResult, onLoading }) {
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-white/60">
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              ✅ Evidence snippets
+              ✅ Evidence Snippets
+            </div>
+               <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              🧠 No Data Retention 
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              🔒 No account / no storage
+              🔒 No Account / No Storage
             </div>
           </div>
         </div>
