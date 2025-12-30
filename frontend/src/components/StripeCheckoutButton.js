@@ -1,54 +1,40 @@
-// src/components/StripeCheckoutButton.js — FULL STRIPE FRONTEND INTEGRATION
+// src/components/StripeCustomerPortalButton.js
 import React, { useState } from "react";
 
-export default function StripeCheckoutButton({ priceId, label = "Upgrade to Premium", disabled = false }) {
+export default function StripeCustomerPortalButton({ customerId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleCheckout = async () => {
+  const openPortal = async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const res = await fetch("/create-checkout-session", {
+      const res = await fetch("/create-portal-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ customerId }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Checkout failed");
-      }
-
-      const { url } = await res.json();
-      window.location.href = url;
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else throw new Error(data.error || "Failed to open portal");
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err.message);
       setLoading(false);
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <button
-        onClick={handleCheckout}
-        disabled={loading || disabled}
-        className={`w-full py-5 px-10 rounded-2xl font-bold text-xl shadow-2xl transition-all
-          ${loading || disabled 
-            ? "bg-gray-400 cursor-not-allowed text-gray-200" 
-            : "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-3xl hover:scale-105"
-          }`}
-      >
-        {loading ? "Redirecting to Stripe..." : label}
-      </button>
+  if (!customerId) return null;
 
-      {error && (
-        <div className="bg-red-100 border-l-4 border-red-600 text-red-800 p-4 rounded-lg">
-          <p className="font-semibold">Error:</p>
-          <p>{error}</p>
-        </div>
-      )}
+  return (
+    <div className="mt-6">
+      <button
+        onClick={openPortal}
+        disabled={loading}
+        className="text-indigo-600 underline hover:no-underline font-medium"
+      >
+        {loading ? "Opening..." : "Manage subscription & cancel anytime"}
+      </button>
+      {error && <p className="text-red-600 mt-2 text-sm">{error}</p>}
     </div>
   );
 }
