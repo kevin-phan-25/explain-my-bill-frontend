@@ -14,15 +14,10 @@ const WORKER_URL = "https://explain-my-bill.explainmybill.workers.dev";
 
 // 🔧 DEV MODE / TEST BYPASS FLAG
 // You can add ?dev=true to bypass upgrade modal on any URL
-// Also supports localStorage.setItem("dev","true") and Vite env VITE_DEV_MODE=true
 const DEV_MODE =
   window.location.hostname === "localhost" ||
   window.location.hostname.includes("127.0.0.1") ||
-  new URL(window.location.href).searchParams.get("dev") === "true" ||
-  window.localStorage.getItem("dev") === "true" ||
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    String(import.meta.env.VITE_DEV_MODE || "").toLowerCase() === "true");
+  new URL(window.location.href).searchParams.get("dev") === "true";
 
 function App() {
   const [result, setResult] = useState(null);
@@ -55,7 +50,7 @@ function App() {
 
       const data = await res.json();
 
-      // DEV OVERRIDE: treat as paid for testing (front-end side)
+      // DEV OVERRIDE: treat as paid for testing
       if (DEV_MODE) data.isPaid = true;
 
       console.log("ExplainMyBill response:", data);
@@ -73,100 +68,70 @@ function App() {
     }
   };
 
-  const extractionBadge = result?.extractionMeta?.extractorUsed
-    ? {
-        provider: result.extractionMeta.extractorUsed,
-        usedOCR: !!result.extractionMeta.usedOCR,
-        textLen: result.extractionMeta.textLen,
-        sourceType: result.extractionMeta.sourceType,
-      }
-    : null;
+  const debug = result?.debug;
+  const extractorUsed = result?.pages?.[0]?.structured?.confidenceMeta?.extractorUsed || debug?.extractorUsed;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 dark:from-[#070A12] dark:to-[#0B1030]">
-      {/* Futuristic subtle grid */}
-      <div className="pointer-events-none fixed inset-0 opacity-[0.12] dark:opacity-[0.22]">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(99,102,241,0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(99,102,241,0.25) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }}
-        />
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-950 to-indigo-950 text-white">
+      {/* Background grid glow */}
+      <div className="pointer-events-none absolute inset-0 opacity-25">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(99,102,241,0.35),transparent_40%),radial-gradient(circle_at_80%_30%,rgba(168,85,247,0.30),transparent_45%),radial-gradient(circle_at_50%_80%,rgba(236,72,153,0.20),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:48px_48px]" />
       </div>
 
-      <header className="relative overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-700 to-fuchsia-600 py-7 shadow-lg">
-          <div className="max-w-5xl mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-2 rounded-full border border-white/20">
-              <span className="text-white/90 text-sm font-semibold tracking-wide">
-                ExplainMyBill
+      <header className="relative z-10">
+        <div className="max-w-5xl mx-auto px-4 pt-10 pb-6">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur">
+              <span className="text-lg">🔒</span>
+              <span className="text-xs text-white/80">
+                Processed transiently • no account • not stored
               </span>
-              <span className="text-white/60 text-xs">• educational tool</span>
-              {DEV_MODE && (
-                <span className="ml-2 text-xs font-bold text-emerald-200 bg-emerald-500/20 border border-emerald-400/30 px-2 py-0.5 rounded-full">
-                  DEV MODE
+              {extractorUsed && (
+                <span className="ml-2 text-[11px] rounded-full bg-white/10 px-2 py-1 text-white/70">
+                  extractor: {String(extractorUsed)}
                 </span>
               )}
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white mt-4 mb-2 tracking-tight">
-              Understand your bill in plain English
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent">
+                ExplainMyBill
+              </span>
             </h1>
-            <p className="text-lg text-white/90 max-w-2xl mx-auto">
-              Upload a bill → we extract the text → AI explains it clearly.
-              Always verify amounts before paying.
-            </p>
 
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
-              <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-2 rounded-full border border-white/20 text-white text-sm">
-                🔒 processed transiently (never stored)
-              </span>
-              <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-2 rounded-full border border-white/20 text-white text-sm">
-                🛡️ no account / no login
-              </span>
-              <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur px-4 py-2 rounded-full border border-white/20 text-white text-sm">
-                ⚡ fast explanation
-              </span>
-            </div>
+            <p className="max-w-2xl text-white/80 text-sm sm:text-base">
+              Upload a medical bill and get a clear, human explanation with evidence-backed amounts.
+              Always verify totals before paying.
+            </p>
           </div>
         </div>
       </header>
 
-      <main className="relative max-w-5xl mx-auto px-4 py-10">
+      <main className="relative z-10 max-w-5xl mx-auto px-4 pb-10">
         {!result ? (
           <BillUploader onResult={processBill} onLoading={setLoading} />
         ) : (
           <>
-            <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <button
                 onClick={reset}
-                className="text-indigo-600 dark:text-indigo-300 hover:underline text-sm font-medium"
+                className="text-sm text-white/80 hover:text-white underline underline-offset-4"
               >
                 ← Analyze Another Bill
               </button>
 
-              {extractionBadge && (
-                <div className="text-xs px-3 py-2 rounded-full border border-white/20 bg-white/50 dark:bg-white/5 backdrop-blur">
-                  <span className="font-semibold">Extractor:</span>{" "}
-                  <span className="uppercase tracking-wide">
-                    {extractionBadge.provider}
+              <div className="text-xs text-white/60">
+                {DEV_MODE ? (
+                  <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1">
+                    Dev mode: unlocked
                   </span>
-                  <span className="mx-2 text-gray-400">•</span>
-                  <span>{extractionBadge.sourceType}</span>
-                  <span className="mx-2 text-gray-400">•</span>
-                  <span>{extractionBadge.textLen} chars</span>
-                  {extractionBadge.usedOCR && (
-                    <>
-                      <span className="mx-2 text-gray-400">•</span>
-                      <span className="text-amber-600 dark:text-amber-300 font-semibold">
-                        OCR fallback used
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
+                ) : (
+                  <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1">
+                    Educational tool
+                  </span>
+                )}
+              </div>
             </div>
 
             <ExplanationCard result={result} />
@@ -181,31 +146,38 @@ function App() {
       <Testimonials />
       <FAQ />
 
-      <section className="relative max-w-5xl mx-auto px-4 py-12">
-        <h2 className="text-3xl font-extrabold text-center mb-8 text-gradient">
-          Privacy + Trust
+      <section className="relative z-10 max-w-5xl mx-auto px-4 py-12">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-8">
+          <span className="bg-gradient-to-r from-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">
+            Privacy & Trust
+          </span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: "🔒", title: "No Storage", desc: "Processed transiently. Not saved." },
-            { icon: "🛡️", title: "No Account", desc: "No login. No profile. No tracking." },
-            { icon: "✅", title: "Transparent", desc: "Confidence + source shown. You can view extracted text." },
+            { icon: "🧼", title: "No Storage", desc: "Processed transiently and returned to you" },
+            { icon: "🛡️", title: "No Account", desc: "No sign-up required" },
+            { icon: "🔎", title: "Evidence-Based", desc: "Amounts include snippets when possible" },
           ].map((i, k) => (
             <div
               key={k}
-              className="bg-white/60 dark:bg-white/5 backdrop-blur rounded-3xl p-6 text-center border border-white/20 shadow-2xl"
+              className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-6 text-center shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_25px_80px_-30px_rgba(0,0,0,0.8)]"
             >
-              <div className="text-5xl mb-3">{i.icon}</div>
-              <h3 className="text-xl font-extrabold mb-2">{i.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">{i.desc}</p>
+              <div className="text-4xl mb-3">{i.icon}</div>
+              <h3 className="text-lg font-bold mb-2">{i.title}</h3>
+              <p className="text-white/70 text-sm">{i.desc}</p>
             </div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-xs text-white/50 max-w-3xl mx-auto">
+          This app is for educational use and is not medical, legal, or billing advice.
+          It is not HIPAA-certified. Use discretion when uploading sensitive documents.
+        </p>
       </section>
 
-      <footer className="relative bg-gray-100/70 dark:bg-black/30 backdrop-blur py-8 mt-12 text-center text-gray-600 dark:text-gray-400 text-sm border-t border-white/10">
-        © 2025 ExplainMyBill • Educational tool • Verify before paying
+      <footer className="relative z-10 py-10 text-center text-white/50 text-sm border-t border-white/10">
+        © 2025 ExplainMyBill • Educational tool
       </footer>
 
       {loading && <Loader />}
