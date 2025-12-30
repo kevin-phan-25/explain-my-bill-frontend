@@ -1,3 +1,4 @@
+// src/components/PaidFeatures.js — FINAL PREMIUM FEATURES DISPLAY
 import React from "react";
 import { motion } from "framer-motion";
 
@@ -19,6 +20,7 @@ export default function PaidFeatures({ features }) {
         Premium Power Tools Unlocked
       </motion.h3>
 
+      {/* Red Flags */}
       {features.redFlags?.length > 0 && (
         <motion.div
           variants={cardVariants}
@@ -47,6 +49,7 @@ export default function PaidFeatures({ features }) {
         </motion.div>
       )}
 
+      {/* Potential Savings */}
       {features.potentialSavings && (
         <motion.div
           variants={cardVariants}
@@ -65,6 +68,7 @@ export default function PaidFeatures({ features }) {
         </motion.div>
       )}
 
+      {/* Services Identified */}
       {features.services?.length > 0 && (
         <motion.div
           variants={cardVariants}
