@@ -4,13 +4,11 @@ export default function BillUploader({ onResult, onLoading }) {
   const inputRef = useRef();
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [selectedName, setSelectedName] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
 
   const validateFile = (file) => {
     const allowed = [".pdf", ".png", ".jpg", ".jpeg", ".xls", ".xlsx"];
     if (!allowed.some((ext) => file.name.toLowerCase().endsWith(ext))) {
-      return "Unsupported file type. Use PDF, PNG, JPG, XLS, or XLSX.";
+      return "Unsupported file type.";
     }
     if (file.size > 20 * 1024 * 1024) {
       return "File exceeds 20MB.";
@@ -19,16 +17,13 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   const processFile = async (file) => {
-    const msg = validateFile(file);
-    if (msg) {
-      setError(msg);
+    const err = validateFile(file);
+    if (err) {
+      setError(err);
       return;
     }
 
     setError(null);
-    setSelectedName(file.name);
-    setSelectedSize(`${(file.size / (1024 * 1024)).toFixed(2)} MB`);
-
     onLoading(true);
     await onResult(file);
     onLoading(false);
@@ -45,7 +40,7 @@ export default function BillUploader({ onResult, onLoading }) {
     e.stopPropagation();
     setDragOver(false);
 
-    const file = e.dataTransfer?.files?.[0];
+    const file = e.dataTransfer.files?.[0];
     if (!file) return;
     await processFile(file);
   };
@@ -63,85 +58,63 @@ export default function BillUploader({ onResult, onLoading }) {
   };
 
   return (
-    <div className="text-center">
-      <input
-        type="file"
-        ref={inputRef}
-        className="hidden"
-        onChange={handleFile}
-        accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx"
-      />
+    <div className="relative max-w-3xl mx-auto py-10">
+      <div className="text-center mb-6">
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          Upload your bill
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          Drag & drop a PDF or image. We extract text, then AI explains it.
+        </p>
+      </div>
+
+      <input type="file" ref={inputRef} className="hidden" onChange={handleFile} />
 
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
-        }}
         className={[
-          "group cursor-pointer rounded-3xl border backdrop-blur-xl transition-all",
-          "px-6 py-10 md:px-10 md:py-12",
-          dragOver
-            ? "border-indigo-300/40 bg-indigo-500/10 shadow-[0_0_0_1px_rgba(99,102,241,0.35),0_0_45px_rgba(99,102,241,0.25)]"
-            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]",
+          "rounded-[28px] border border-white/20 shadow-2xl overflow-hidden",
+          "bg-white/60 dark:bg-white/5 backdrop-blur p-6 sm:p-10",
+          "transition-all duration-300",
+          dragOver ? "ring-2 ring-indigo-500 scale-[1.01]" : "",
         ].join(" ")}
       >
-        <div className="mx-auto max-w-xl">
-          <div className="mx-auto mb-4 h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.06] flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.12)]">
-            <span className="text-2xl">⬆️</span>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-fuchsia-600 flex items-center justify-center shadow-xl">
+            <span className="text-3xl">🧾</span>
           </div>
 
-          <h3 className="text-xl md:text-2xl font-bold text-white">
-            {dragOver ? "Drop it here" : "Drag & drop your bill"}
-          </h3>
-
-          <p className="mt-2 text-sm text-white/65">
-            Or click to upload. Supported: PDF, PNG, JPG, XLS, XLSX (max 20MB).
-          </p>
-
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
-              🔒 transient processing
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
-              ✅ confidence shown
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/70">
-              ⚡ fast results
-            </span>
+          <div className="text-center">
+            <p className="text-lg font-extrabold">
+              {dragOver ? "Drop your file to analyze" : "Drag & drop your bill here"}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              PDF, PNG, JPG, XLS/XLSX • Max 20MB
+            </p>
           </div>
 
-          <div className="mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
             <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                inputRef.current?.click();
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-semibold text-white
-                         bg-gradient-to-r from-indigo-600 to-fuchsia-600
-                         hover:from-indigo-500 hover:to-fuchsia-500
-                         shadow-[0_18px_60px_rgba(99,102,241,0.25)]"
+              onClick={() => inputRef.current.click()}
+              className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-3 px-6 rounded-2xl shadow-xl hover:scale-[1.02]"
             >
-              <span>Upload Your Bill</span>
-              <span className="opacity-80">→</span>
+              Choose file
             </button>
-          </div>
 
-          {(selectedName || selectedSize) && (
-            <div className="mt-4 text-xs text-white/70">
-              Selected: <span className="font-semibold">{selectedName}</span>
-              {selectedSize ? <span className="opacity-70"> • {selectedSize}</span> : null}
-            </div>
-          )}
+            <span className="text-xs px-3 py-2 rounded-full border border-white/20 bg-white/50 dark:bg-white/5">
+              🔒 processed transiently • never stored
+            </span>
+
+            <span className="text-xs px-3 py-2 rounded-full border border-white/20 bg-white/50 dark:bg-white/5">
+              ✅ confidence + source shown
+            </span>
+          </div>
 
           {error && (
-            <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-              {error}
+            <div className="mt-4 w-full rounded-2xl border border-red-300/40 bg-red-500/10 p-4 text-center">
+              <p className="text-red-700 dark:text-red-200 font-semibold">{error}</p>
             </div>
           )}
         </div>
