@@ -1,3 +1,4 @@
+// src/components/ExplanationCard.js
 import React, { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import ConfidenceHeatMap from "./ConfidenceHeatMap";
@@ -10,171 +11,137 @@ import ConfidenceGate from "./ConfidenceGate";
 import DisputeLetterGenerator from "./DisputeLetterGenerator";
 
 export default function ExplanationCard({ result }) {
-  // ✅ Hooks ALWAYS run (no early return before hooks)
+  // ✅ Hooks must be unconditional (no early-return before hooks)
   const [open, setOpen] = useState(true);
   const [showLegend, setShowLegend] = useState(false);
   const [hovered, setHovered] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
 
-  const normalized = useMemo(() => {
-    const page = result?.pages?.[0] || {};
-    const structured = page.structured || {};
-
-    const keyAmounts = structured.keyAmounts || {};
-    const citations = structured.citations || [];
-    const confidenceMeta = structured.confidenceMeta || {};
-
+  const safe = useMemo(() => {
+    const pages = result?.pages || [];
+    const page0 = pages[0] || {};
+    const structured = page0.structured || page0?.structured || page0?.structured || {};
+    const structuredSafe = structured || {};
+    const keyAmounts = structuredSafe.keyAmounts || {};
     const explanation =
-      structured.explanation || result?.explanation || "No explanation available.";
+      structuredSafe.explanation || result?.explanation || "No explanation available.";
+    const nextSteps = structuredSafe.nextSteps || [];
+    const summary = structuredSafe.summary || "Bill analyzed.";
+    const confidenceMeta = structuredSafe.confidenceMeta || {};
+    const rawText = page0.rawText || "";
+    const extractionMeta = result?.extractionMeta || {};
 
-    const summary = structured.summary || "Bill analyzed.";
-    const points = structured.summaryPoints || [];
-    const nextSteps = structured.nextSteps || [];
-
-    // Prefer preview if present (less sensitive)
-    const rawText = page.rawTextPreview || page.rawText || "";
+    // Normalize keyAmounts: only objects
+    const entries = Object.entries(keyAmounts).filter(
+      ([, v]) => v && typeof v === "object"
+    );
 
     return {
-      hasData: !!result?.pages?.length,
-      page,
-      structured,
+      hasPages: pages.length > 0,
+      entries,
       summary,
       explanation,
-      keyAmounts,
-      points,
       nextSteps,
-      citations,
       confidenceMeta,
       rawText,
+      extractionMeta,
     };
   }, [result]);
 
-  if (!normalized.hasData) {
-    return (
-      <div className="max-w-5xl mx-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-8 text-center text-white/70">
-        No data returned.
-      </div>
-    );
+  // Now it’s safe to early return
+  if (!safe.hasPages) {
+    return <p className="text-center text-white/70">No data returned.</p>;
   }
 
-  const {
-    summary,
-    explanation,
-    keyAmounts,
-    points,
-    nextSteps,
-    citations,
-    confidenceMeta,
-    rawText,
-  } = normalized;
-
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("ExplainMyBill Report", 14, 18);
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("ExplainMyBill Report", 14, 18);
 
-    doc.setFontSize(11);
-    doc.text(`Summary: ${summary}`, 14, 30);
+      doc.setFontSize(11);
+      doc.text("Educational use only. Verify before paying.", 14, 28);
 
-    doc.setFontSize(10);
-    doc.text("Explanation:", 14, 42);
-    doc.text(doc.splitTextToSize(explanation, 180), 14, 50);
+      doc.setFontSize(12);
+      doc.text("Summary:", 14, 40);
+      doc.setFontSize(10);
+      doc.text(String(safe.summary || ""), 14, 48, { maxWidth: 180 });
 
-    doc.setFontSize(10);
-    doc.text("Next Steps:", 14, 110);
-    const steps = (nextSteps || []).map((s, i) => `${i + 1}. ${s}`);
-    doc.text(doc.splitTextToSize(steps.join("\n"), 180), 14, 118);
+      doc.setFontSize(12);
+      doc.text("Explanation:", 14, 70);
+      doc.setFontSize(10);
+      doc.text(String(safe.explanation || ""), 14, 78, { maxWidth: 180 });
 
-    doc.save("explainmybill-report.pdf");
+      doc.save("ExplainMyBill_Report.pdf");
+    } catch (e) {
+      console.error(e);
+      alert("PDF export failed. Check console.");
+    }
   };
 
-  const chip = (icon, text) => (
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75">
-      <span>{icon}</span>
-      <span>{text}</span>
-    </div>
-  );
-
-  // Convert citations to field->snippets list for easy rendering
-  const evidenceByField = useMemo(() => {
-    const map = {};
-    (citations || []).forEach((c) => {
-      const f = String(c?.field || "").toLowerCase();
-      if (!f) return;
-      map[f] = map[f] || [];
-      if (c?.snippet) map[f].push(String(c.snippet));
-    });
-    return map;
-  }, [citations]);
-
-  const fieldLabel = (k) => {
-    const pretty = k.replace(/([A-Z])/g, " $1").trim();
-    return pretty.charAt(0).toUpperCase() + pretty.slice(1);
-  };
+  const extractorLabel =
+    safe.extractionMeta?.extractorUsed ||
+    safe.confidenceMeta?.extractorUsed ||
+    safe.confidenceMeta?.sourceType ||
+    "unknown";
 
   return (
-    <div className="max-w-5xl mx-auto relative">
-      <div className="rounded-[28px] border border-white/10 bg-white/5 backdrop-blur p-6 sm:p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_25px_100px_-45px_rgba(0,0,0,0.9)] space-y-6">
+    <div className="relative">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-2xl shadow-2xl p-5 md:p-7">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold">
+            <h2 className="text-3xl font-extrabold tracking-tight">
               Your Bill Explained
             </h2>
-            <p className="mt-2 text-sm text-white/70 max-w-2xl">
-              Clear, human-friendly guidance with confidence scoring and evidence snippets.
-              Always verify totals before paying.
+            <p className="text-sm text-white/70 mt-2 max-w-2xl">
+              Clear, human-friendly guidance with confidence scoring and evidence lines.
+              This tool is for education — always verify totals before paying.
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {chip("🧼", "processed transiently (never stored)")}
-              {chip("🔎", "evidence + source shown")}
-              {chip("⚡", "fast explanation")}
-              {confidenceMeta?.sourceType && chip("🧾", `source: ${confidenceMeta.sourceType}`)}
-              {confidenceMeta?.extractorUsed && chip("🧠", `extractor: ${confidenceMeta.extractorUsed}`)}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              <Chip icon="🧼" text="processed transiently (never stored)" />
+              <Chip icon="✅" text="confidence + evidence shown" />
+              <Chip icon="⚡" text="fast explanation" />
+              <Chip icon="🧾" text={`extractor: ${extractorLabel}`} />
             </div>
           </div>
 
-          <div className="flex flex-col items-stretch gap-2 sm:w-[260px]">
+          <div className="flex flex-col gap-2">
             <button
               onClick={() => setShowLegend(true)}
-              className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-3 text-sm text-white/85"
+              className="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 text-white/90 hover:bg-white/10 text-sm"
             >
               What do confidence scores mean?
             </button>
 
             <button
               onClick={downloadPDF}
-              className="rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 hover:from-indigo-400 hover:to-fuchsia-400 px-4 py-3 text-sm font-semibold shadow-[0_10px_30px_-15px_rgba(99,102,241,0.8)]"
+              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 font-bold text-sm shadow-lg hover:opacity-95"
             >
               Download Report (PDF)
             </button>
           </div>
         </div>
 
-        {/* Amount cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(keyAmounts).map(([k, v]) => {
-            if (!v || typeof v !== "object") return null;
-
-            const percent = Math.round((v.confidence || 0) * 100);
-            const evKey = String(k).toLowerCase();
-            const snippets = evidenceByField[evKey] || [];
-            const directEvidence = v.evidence ? [v.evidence] : [];
-            const allEvidence = [...directEvidence, ...snippets].slice(0, 3);
+        {/* Key fields */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {safe.entries.map(([k, v]) => {
+            const pct = Math.round((v.confidence || 0) * 100);
+            const title = prettifyKey(k);
 
             return (
               <div
                 key={k}
-                className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/8 to-white/4 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                className="relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-5 shadow-xl"
                 onMouseEnter={() => setHovered(k)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm text-white/70">{fieldLabel(k)}</p>
+                    <p className="text-sm text-white/70">{title}</p>
                     <ConfidenceGate confidence={v.confidence}>
-                      <p className="mt-2 text-3xl font-extrabold tracking-tight">
+                      <p className="text-3xl font-extrabold mt-2">
                         {v.value || "—"}
                       </p>
                     </ConfidenceGate>
@@ -182,60 +149,55 @@ export default function ExplanationCard({ result }) {
 
                   <div className="text-right">
                     <p className="text-xs text-white/50">Confidence</p>
-                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                    <div className="inline-flex items-center gap-2 mt-1 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                       <span
                         className={[
-                          "h-2 w-2 rounded-full",
-                          percent >= 85 ? "bg-emerald-400" : percent >= 60 ? "bg-amber-300" : "bg-rose-400",
+                          "inline-block w-2.5 h-2.5 rounded-full",
+                          pct >= 80 ? "bg-emerald-400" : pct >= 55 ? "bg-amber-300" : "bg-rose-400",
                         ].join(" ")}
                       />
-                      <span className="text-xs text-white/80">{percent}%</span>
+                      <span className="text-sm font-bold">{pct}%</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="mt-4 h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className={[
-                      "h-full rounded-full",
-                      percent >= 85 ? "bg-emerald-400" : percent >= 60 ? "bg-amber-300" : "bg-rose-400",
-                    ].join(" ")}
-                    style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-                  />
+                <div className="mt-4">
+                  <ProgressBar pct={pct} />
+                  <p className="text-xs text-white/50 mt-2">
+                    {v.source ? `Source: ${v.source}` : "Source: unknown"}
+                  </p>
+                  <LowConfidenceFlag confidence={v.confidence} />
                 </div>
 
-                <p className="mt-2 text-xs text-white/55">
-                  {v.reason || "Confidence reflects clarity + evidence."}
-                </p>
-
-                <LowConfidenceFlag confidence={v.confidence} />
-                <FieldAIExplanation explanation={v.aiExplanation} />
-
-                {/* Evidence */}
-                {allEvidence.length > 0 && (
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-xs font-semibold text-white/70 mb-2">
-                      Evidence (from extracted text)
+                {/* Evidence lines (citations) */}
+                {Array.isArray(v.citations) && v.citations.length > 0 && (
+                  <div className="mt-4 rounded-2xl bg-black/20 border border-white/10 p-3">
+                    <p className="text-xs font-bold text-white/80 mb-2">
+                      Evidence lines (from extracted text)
                     </p>
-                    <div className="space-y-2">
-                      {allEvidence.map((snip, i) => (
-                        <div key={i} className="text-xs text-white/75 leading-relaxed">
-                          <span className="text-white/40 mr-2">•</span>
-                          <span className="font-mono">{snip}</span>
-                        </div>
+                    <ul className="space-y-2">
+                      {v.citations.slice(0, 3).map((c, idx) => (
+                        <li key={idx} className="text-xs text-white/70">
+                          <span className="text-white/50">
+                            {c.lineIndex ? `L${c.lineIndex}: ` : ""}
+                          </span>
+                          <span className="font-mono">{c.lineText}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
 
-                <div className="mt-4 space-y-2">
+                {/* Optional: per-field AI explanation (kept) */}
+                <FieldAIExplanation explanation={v.aiExplanation} />
+
+                <div className="mt-4 flex flex-col gap-2">
                   <ReportIncorrectAmount field={k} value={v.value} />
                   <DisputeLetterGenerator field={k} value={v.value} confidence={v.confidence} />
                 </div>
 
                 {hovered === k && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20">
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50">
                     <ConfidenceTooltip confidence={v.confidence} source={v.source} />
                   </div>
                 )}
@@ -244,42 +206,98 @@ export default function ExplanationCard({ result }) {
           })}
         </div>
 
-        <ConfidenceHeatMap keyAmounts={keyAmounts} />
+        {/* Heatmap */}
+        <div className="mt-8">
+          <h3 className="text-lg font-extrabold text-center">Confidence by Field</h3>
+          <div className="mt-4">
+            <ConfidenceHeatMap
+              keyAmounts={Object.fromEntries(safe.entries)}
+            />
+          </div>
+        </div>
 
-        {/* Explanation */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-full rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-3 font-semibold flex items-center justify-between"
-        >
-          <span>Explanation</span>
-          <span className="text-white/70">{open ? "−" : "+"}</span>
-        </button>
+        {/* Explanation accordion */}
+        <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-5">
+          <button
+            onClick={() => setOpen(!open)}
+            className="w-full flex items-center justify-between font-extrabold"
+          >
+            <span>Explanation</span>
+            <span className="text-white/60">{open ? "−" : "+"}</span>
+          </button>
 
-        {open && (
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-5 space-y-3">
-            <p className="text-sm text-white/80 font-semibold">{summary}</p>
+          {open && (
+            <div className="mt-4 space-y-3">
+              <p className="text-white/80">{safe.summary}</p>
 
-            {points.length > 0 && (
-              <div className="space-y-1">
-                {points.map((p, i) => (
-                  <p key={i} className="text-sm text-white/75">
-                    • {p}
-                  </p>
-                ))}
+              <div className="rounded-2xl bg-black/20 border border-white/10 p-4">
+                <p className="text-sm text-white/80 whitespace-pre-wrap">
+                  {safe.explanation}
+                </p>
               </div>
-            )}
 
-            <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">
-              {explanation}
-            </p>
+              {Array.isArray(safe.nextSteps) && safe.nextSteps.length > 0 && (
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  <p className="font-bold mb-2">Suggested next steps</p>
+                  <ul className="list-disc ml-5 space-y-1 text-sm text-white/80">
+                    {safe.nextSteps.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {nextSteps.length > 0 && (
-              <>
-                <p className="text-sm font-bold mt-2">Next Steps:</p>
-                <div className="space-y-1">
-                  {nextSteps.map((s, i) => (
-                    <p key={i} className="text-sm text-white/75">
-                      • {s}
-                    </p>
-                  ))}
-                </di
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowRaw((x) => !x)}
+                  className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+                >
+                  {showRaw ? "Hide extracted text" : "Show extracted text (for trust/debug)"}
+                </button>
+
+                <span className="text-xs text-white/50">
+                  Not medical/legal/billing advice
+                </span>
+              </div>
+
+              {showRaw && (
+                <pre className="max-h-80 overflow-auto rounded-2xl bg-black/30 border border-white/10 p-4 text-xs text-white/70 whitespace-pre-wrap">
+                  {safe.rawText || "No raw text available."}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Legend modal */}
+        {showLegend && <ConfidenceLegendModal onClose={() => setShowLegend(false)} />}
+      </div>
+    </div>
+  );
+}
+
+function prettifyKey(k) {
+  return String(k)
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
+}
+
+function ProgressBar({ pct }) {
+  const cl =
+    pct >= 80 ? "bg-emerald-400" : pct >= 55 ? "bg-amber-300" : "bg-rose-400";
+  return (
+    <div className="w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
+      <div className={`h-full ${cl}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function Chip({ icon, text }) {
+  return (
+    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/80">
+      <span>{icon}</span>
+      <span>{text}</span>
+    </span>
+  );
+}
