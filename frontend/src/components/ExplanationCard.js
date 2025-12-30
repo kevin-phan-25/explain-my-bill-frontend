@@ -7,27 +7,32 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
   const [showNextSteps, setShowNextSteps] = useState(true);
   const [showRawText, setShowRawText] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [activePage, setActivePage] = useState(0);
+  const [showFutureTools, setShowFutureTools] = useState(false);
 
   const safe = useMemo(() => {
-    const structured = result?.pages?.[0]?.structured || {};
+    const pages = result?.pages || [];
+    const currentPage = pages[activePage] || {};
+    const structured = currentPage.structured || {};
     const keyAmounts = structured.keyAmounts || {};
     const entries = Object.values(keyAmounts).filter(f => f && f.label);
 
     return {
+      pages,
+      currentPage,
       entries,
       summary: structured.summary || "Your bill has been analyzed.",
       explanation: structured.explanation || "See breakdown below.",
       nextSteps: structured.nextSteps || [],
-      rawText: result?.pages?.[0]?.rawText || "",
+      rawText: currentPage.rawText || "",
+      totalPages: pages.length,
     };
-  }, [result]);
+  }, [result, activePage]);
 
-  // Professional PDF with clean, formal layout
   const downloadPDF = () => {
     const doc = new jsPDF();
     let y = 20;
 
-    // Header
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("Medical Bill Summary Report", 20, y);
@@ -41,7 +46,6 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     doc.text("Date: " + new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }), 20, y);
     y += 15;
 
-    // Disclaimer
     doc.setDrawColor(200);
     doc.setLineWidth(0.5);
     doc.line(20, y - 5, 190, y - 5);
@@ -51,7 +55,6 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     doc.text("Always verify all amounts directly with your healthcare provider and insurance company.", 20, y + 6);
     y += 20;
 
-    // Key Amounts Section
     doc.setTextColor(0);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
@@ -71,14 +74,12 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
 
     y += 10;
 
-    // Plain English Summary
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("Summary in Plain English", 20, y);
     y += 12;
 
     doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
     const summaryLines = doc.splitTextToSize(safe.summary, 170);
     doc.text(summaryLines, 20, y);
     y += summaryLines.length * 7 + 10;
@@ -87,7 +88,6 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     doc.text(explanationLines, 20, y);
     y += explanationLines.length * 7 + 15;
 
-    // Next Steps
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("Recommended Next Steps", 20, y);
@@ -99,13 +99,24 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
       y += 10;
     });
 
-    // Footer
+    if (safe.rawText) {
+      y += 15;
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text("Excerpt from extracted document text (Page 1):", 20, y);
+      y += 8;
+      const excerpt = safe.rawText.slice(0, 1000) + (safe.rawText.length > 1000 ? "..." : "");
+      const excerptLines = doc.splitTextToSize(excerpt, 170);
+      doc.setFontSize(9);
+      doc.text(excerptLines, 20, y);
+    }
+
     doc.setDrawColor(200);
-    doc.line(20, y + 10, 190, y + 10);
+    doc.line(20, y + 20, 190, y + 20);
     doc.setFontSize(9);
     doc.setTextColor(150);
-    doc.text("ExplainMyBill is not affiliated with any healthcare provider or insurer.", 20, y + 20);
-    doc.text("This tool is not HIPAA-certified and should not replace official statements.", 20, y + 26);
+    doc.text("ExplainMyBill is not affiliated with any healthcare provider or insurer.", 20, y + 30);
+    doc.text("This tool is not HIPAA-certified and should not replace official statements.", 20, y + 36);
 
     doc.save("ExplainMyBill_Professional_Report.pdf");
   };
@@ -117,20 +128,35 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
     return { color: "#ef4444", label: "Low confidence — double-check" };
   };
 
-  // More vibrant number highlighting
   const highlightNumbers = (text) => {
     if (!text) return null;
     return text.split(/(\$[0-9,]+\.?\d*)/g).map((part, i) => {
       if (/^\$[0-9,]+\.?\d*$/.test(part)) {
-        return <span key={i} className="font-black text-3xl bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">{part}</span>;
+        return <span key={i} className="font-black text-4xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">{part}</span>;
       }
       return <span key={i}>{part}</span>;
     });
   };
 
+  const highlightItemizedLines = (rawText) => {
+    if (!rawText || safe.entries.length === 0) return rawText;
+
+    let highlighted = rawText;
+    safe.entries.forEach(field => {
+      if (field.citations) {
+        field.citations.forEach(c => {
+          const regex = new RegExp(`(${c.text.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+          highlighted = highlighted.replace(regex, '<mark class="bg-yellow-200 px-2 py-1 rounded font-semibold">$1</mark>');
+        });
+      }
+    });
+
+    return highlighted;
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-8">
-      {/* Modern Header */}
+      {/* Header */}
       <div className="rounded-3xl bg-gradient-to-br from-indigo-600 to-pink-600 p-1 shadow-2xl">
         <div className="bg-white rounded-[26px] p-8">
           <div className="flex flex-col md:flex-row justify-between items-start gap-6">
@@ -143,9 +169,8 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
               </p>
             </div>
 
-            {/* Smaller Analyze Another Bill button */}
             <button
-              onClick={onAnalyzeAnother || (() => location.reload())}
+              onClick={onAnalyzeAnother || (() => window.location.reload())}
               className="inline-flex items-center gap-2 bg-white border-2 border-indigo-600 text-indigo-600 px-5 py-2.5 rounded-full font-bold text-base hover:bg-indigo-50 transition"
             >
               <span className="text-lg">←</span>
@@ -153,25 +178,24 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
             </button>
           </div>
 
-          {/* Vibrant Trust Badges */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
-            <div className="flex items-center gap-5 bg-gradient-to-r from-emerald-100 to-green-100 px-7 py-6 rounded-3xl shadow-lg border-2 border-emerald-300">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+            <div className="flex items-center gap-5 bg-gradient-to-br from-emerald-100 to-green-100 px-8 py-7 rounded-3xl shadow-2xl border-4 border-emerald-400">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-700 rounded-full flex items-center justify-center text-white text-4xl font-black shadow-2xl">
                 ✓
               </div>
-              <span className="font-bold text-gray-800 text-lg">No account needed</span>
+              <span className="font-black text-gray-800 text-xl">No account needed</span>
             </div>
-            <div className="flex items-center gap-5 bg-gradient-to-r from-emerald-100 to-green-100 px-7 py-6 rounded-3xl shadow-lg border-2 border-emerald-300">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-xl">
+            <div className="flex items-center gap-5 bg-gradient-to-br from-emerald-100 to-green-100 px-8 py-7 rounded-3xl shadow-2xl border-4 border-emerald-400">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-700 rounded-full flex items-center justify-center text-white text-4xl font-black shadow-2xl">
                 ✓
               </div>
-              <span className="font-bold text-gray-800 text-lg">Deleted instantly</span>
+              <span className="font-black text-gray-800 text-xl">Deleted instantly</span>
             </div>
-            <div className="flex items-center gap-5 bg-gradient-to-r from-emerald-100 to-green-100 px-7 py-6 rounded-3xl shadow-lg border-2 border-emerald-300">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-xl">
+            <div className="flex items-center gap-5 bg-gradient-to-br from-emerald-100 to-green-100 px-8 py-7 rounded-3xl shadow-2xl border-4 border-emerald-400">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-700 rounded-full flex items-center justify-center text-white text-4xl font-black shadow-2xl">
                 ✓
               </div>
-              <span className="font-bold text-gray-800 text-lg">Clear evidence shown</span>
+              <span className="font-black text-gray-800 text-xl">Clear evidence shown</span>
             </div>
           </div>
 
@@ -183,10 +207,9 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
               How confidence works
             </button>
 
-            {/* Professional Download Button */}
             <button
               onClick={downloadPDF}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-700 to-purple-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-700 to-purple-700 text-white px-8 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl transition-all"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -196,6 +219,29 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
           </div>
         </div>
       </div>
+
+      {/* Multi-page navigation */}
+      {safe.totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 py-4">
+          <button
+            onClick={() => setActivePage(Math.max(0, activePage - 1))}
+            disabled={activePage === 0}
+            className="px-6 py-3 bg-indigo-100 rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-200 transition"
+          >
+            ← Previous Page
+          </button>
+          <span className="font-bold text-xl text-indigo-700">
+            Page {activePage + 1} of {safe.totalPages}
+          </span>
+          <button
+            onClick={() => setActivePage(Math.min(safe.totalPages - 1, activePage + 1))}
+            disabled={activePage === safe.totalPages - 1}
+            className="px-6 py-3 bg-indigo-100 rounded-xl font-medium disabled:opacity-50 hover:bg-indigo-200 transition"
+          >
+            Next Page →
+          </button>
+        </div>
+      )}
 
       {/* Key Amount Cards */}
       <div className="grid md:grid-cols-3 gap-6">
@@ -238,7 +284,7 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
         })}
       </div>
 
-      {/* Plain English Summary – Vibrant Highlights */}
+      {/* Plain English Summary */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <button
           onClick={() => setShowExplanation(!showExplanation)}
@@ -285,23 +331,61 @@ export default function ExplanationCard({ result, onAnalyzeAnother }) {
         )}
       </div>
 
-      {/* Raw Text */}
+      {/* Future Insurance Claim Tools */}
+      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-3xl p-8 border-2 border-purple-300">
+        <button
+          onClick={() => setShowFutureTools(!showFutureTools)}
+          className="w-full flex justify-between items-center text-left"
+        >
+          <h2 className="text-3xl font-black text-purple-800">
+            🚀 Coming Soon: Insurance Claim Power Tools
+          </h2>
+          <span className="text-4xl text-purple-400">{showFutureTools ? "−" : "+"}</span>
+        </button>
+
+        {showFutureTools && (
+          <div className="mt-8 grid md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
+              <h3 className="text-xl font-bold text-purple-700 mb-3">EOB Comparison Tool</h3>
+              <p className="text-gray-700">Upload your provider bill + insurance EOB → instantly spot discrepancies, overcharges, or missing adjustments.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
+              <h3 className="text-xl font-bold text-purple-700 mb-3">Appeal Letter Generator</h3>
+              <p className="text-gray-700">Auto-generates professional appeal letters with evidence citations — ready to send to your insurer.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
+              <h3 className="text-xl font-bold text-purple-700 mb-3">Overcharge Detector</h3>
+              <p className="text-gray-700">Compares your charges to Medicare and FAIR Health averages — flags potential overbilling.</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-xl border border-purple-200">
+              <h3 className="text-xl font-bold text-purple-700 mb-3">Prior Auth Tracker</h3>
+              <p className="text-gray-700">Track pre-approvals, deadlines, and status — never miss a prior authorization again.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Raw Text with Highlighting */}
       <div className="bg-gray-100 rounded-2xl p-6">
         <button
           onClick={() => setShowRawText(!showRawText)}
           className="text-indigo-600 font-semibold hover:underline"
         >
-          {showRawText ? "← Hide extracted text" : "Show full extracted text (for verification)"}
+          {showRawText ? "← Hide extracted text" : "Show full extracted text (with evidence highlighted)"}
         </button>
 
         {showRawText && (
-          <pre className="mt-4 p-6 bg-white rounded-xl text-sm text-gray-700 overflow-x-auto border">
-            {safe.rawText || "No raw text available."}
-          </pre>
+          <pre
+            className="mt-4 p-6 bg-white rounded-xl text-sm text-gray-700 overflow-x-auto border"
+            dangerouslySetInnerHTML={{ __html: highlightItemizedLines(safe.rawText) || "No raw text available." }}
+          />
         )}
       </div>
 
-      {/* Confidence Modal */}
+      {/* Confidence Help */}
       {showHelp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
